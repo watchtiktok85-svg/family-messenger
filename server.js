@@ -155,12 +155,13 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
 });
 
+// МАРШРУТ ДЛЯ ПОЛУЧЕНИЯ ФАЙЛА (ИСПРАВЛЕННЫЙ)
 app.get('/api/files/:fileId', async (req, res) => {
   const { fileId } = req.params;
   
   try {
     const result = await pool.query(
-      'SELECT file_name, file_type, file_data FROM files WHERE id = $1',
+      'SELECT file_name, file_type, file_data, file_size FROM files WHERE id = $1',
       [fileId]
     );
     
@@ -169,9 +170,18 @@ app.get('/api/files/:fileId', async (req, res) => {
     }
     
     const file = result.rows[0];
+    
+    // Проверяем, есть ли данные
+    if (!file.file_data) {
+      console.error('❌ Файл в БД не содержит данных, ID:', fileId);
+      return res.status(500).json({ error: 'Файл поврежден' });
+    }
+    
     res.set('Content-Type', file.file_type);
     res.set('Content-Disposition', `inline; filename="${file.file_name}"`);
+    res.set('Content-Length', file.file_size);
     res.send(file.file_data);
+    
   } catch (err) {
     console.error('❌ Ошибка получения файла:', err);
     res.status(500).json({ error: 'Ошибка получения файла' });
