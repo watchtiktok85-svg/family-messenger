@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-module.exports = ({ getMessagesBetweenUsers, createMessage, markMessagesAsRead, getRecentChats, db }) => {
+module.exports = ({ getMessagesBetweenUsers, createMessage, markMessagesAsRead, getRecentChats, deleteMessagesBetweenUsers, db }) => {
   
   // Получить историю сообщений с конкретным пользователем
   router.get('/history/:userId/:contactId', async (req, res) => {
