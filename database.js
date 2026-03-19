@@ -213,19 +213,22 @@ async function getMessagesBetweenUsers(userId1, userId2) {
     return result.rows;
 }
 
-// Создать новое сообщение
+// Создать новое сообщение (ИСПРАВЛЕННАЯ ВЕРСИЯ)
 async function createMessage(messageData) {
-    console.log('📥 createMessage received:', messageData); // ← Добавь это
+    console.log('📥 createMessage received:', messageData);
     
     const timestampInSeconds = Math.floor(Date.now() / 1000);
     
-    console.log(`📝 timestamp в секундах: ${timestampInSeconds}`); // ← Добавь это
+    console.log(`📝 timestamp в секундах: ${timestampInSeconds}`);
+    
+    // Убираем fileId из запроса, если он слишком большой
+    const fileId = messageData.fileId ? messageData.fileId.toString().slice(0, 10) : null;
     
     const result = await pool.query(
         `INSERT INTO messages (sender_id, receiver_id, message, type, file_id, timestamp, status) 
          VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
         [messageData.senderId, messageData.receiverId, messageData.message, 
-         messageData.type, messageData.fileId || null, timestampInSeconds, 'sent']
+         messageData.type, fileId, timestampInSeconds, 'sent']
     );
     
     return { 
