@@ -15,7 +15,8 @@ const {
     getMessagesBetweenUsers, 
     createMessage, 
     markMessagesAsRead, 
-    getRecentChats 
+    getRecentChats,
+    deleteMessagesBetweenUsers
 } = require('./database');
 
 const app = express();
