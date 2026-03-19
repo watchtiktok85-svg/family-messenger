@@ -247,9 +247,15 @@ async function createMessage(messageData) {
     );
     
     return { 
-        id: result.rows[0].id, 
-        ...messageData, 
-        timestamp: timestampInSeconds * 1000 
+        id: result.rows[0].id,  
+        senderId: messageData.senderId,
+        receiverId: messageData.receiverId,
+        message: messageData.message,
+        type: messageData.type,
+        fileId: messageData.fileId,
+        timestamp: timestampInSeconds * 1000,
+        timestamp: timestampInSeconds * 1000, 
+        status: 'sent'
     };
 }
 
