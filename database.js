@@ -141,7 +141,8 @@ async function createTestMessages() {
     
     if (!user1 || !user2) return;
     
-    const now = Date.now();
+    // Вместо Date.now() используй Math.floor(Date.now() / 1000)
+    const timestamp = Math.floor((now - 5 * hour) / 1000);
     const hour = 3600000;
     
     const testMessages = [
