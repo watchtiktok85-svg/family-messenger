@@ -144,7 +144,6 @@ async function createTestUsers() {
     await createTestMessages();
 }
 
-// Функция создания тестовых сообщений
 async function createTestMessages() {
     const users = await pool.query('SELECT id, username FROM users');
     const user1 = users.rows.find(u => u.username === 'user1');
@@ -152,14 +151,14 @@ async function createTestMessages() {
     
     if (!user1 || !user2) return;
     
-    // Вместо Date.now() используй Math.floor(Date.now() / 1000)
-    const timestamp = Math.floor((now - 5 * hour) / 1000);
+    const now = Date.now();
     const hour = 3600000;
     
+    // Используем секунды для БД
     const testMessages = [
-        { sender_id: user1.id, receiver_id: user2.id, message: 'Привет! Как дела?', timestamp: now - 5 * hour, status: 'read' },
-        { sender_id: user2.id, receiver_id: user1.id, message: 'Привет! Всё отлично', timestamp: now - 4.5 * hour, status: 'read' },
-        { sender_id: user1.id, receiver_id: user2.id, message: 'Круто!', timestamp: now - 4 * hour, status: 'read' }
+        { sender_id: user1.id, receiver_id: user2.id, message: 'Привет! Как дела?', timestamp: Math.floor((now - 5 * hour) / 1000), status: 'read' },
+        { sender_id: user2.id, receiver_id: user1.id, message: 'Привет! Всё отлично', timestamp: Math.floor((now - 4.5 * hour) / 1000), status: 'read' },
+        { sender_id: user1.id, receiver_id: user2.id, message: 'Круто!', timestamp: Math.floor((now - 4 * hour) / 1000), status: 'read' }
     ];
     
     for (const msg of testMessages) {
