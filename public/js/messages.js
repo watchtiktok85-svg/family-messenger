@@ -207,12 +207,6 @@ function renderMessage(msg) {
         const fileSize = msg.fileSize || 0;
         const fileIcon = getFileIcon(fileName);
         
-    // 👇 ВОТ СЮДА НУЖНО ДОБАВИТЬ ОБРАБОТКУ FILE
-    else if (msg.type === 'video') {
-        const fileName = msg.fileName || 'Видео';
-        const fileSize = msg.fileSize || 0;
-        const fileIcon = getFileIcon(fileName);
-        
         content = `
             <div class="file-message" onclick="downloadFile('${msg.message}')">
                 <span>${fileIcon} ${fileName}</span>
