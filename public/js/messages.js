@@ -199,7 +199,23 @@ function renderMessage(msg) {
                 <div class="voice-duration">${durationText}</div>
             </div>
         `;
-    } else {
+    } 
+    
+    // 👇 ВОТ СЮДА НУЖНО ДОБАВИТЬ ОБРАБОТКУ FILE
+    else if (msg.type === 'file') {
+        const fileName = msg.fileName || 'Файл';
+        const fileSize = msg.fileSize || 0;
+        const fileIcon = getFileIcon(fileName);
+        
+        content = `
+            <div class="file-message" onclick="downloadFile('${msg.message}')">
+                <span>${fileIcon} ${fileName}</span>
+                <small>${formatFileSize(fileSize)}</small>
+            </div>
+        `;
+    }
+        
+    else {
         content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
     }
     
@@ -373,6 +389,30 @@ async function showMiniProfile(userId, username) {
     }
 }
 
+// Получить иконку для типа файла
+function getFileIcon(filename) {
+    if (!filename) return '📎';
+    
+    const ext = filename.split('.').pop().toLowerCase();
+    
+    const icons = {
+        // Документы
+        pdf: '📕', doc: '📘', docx: '📘', txt: '📄',
+        xls: '📊', xlsx: '📊', ppt: '📽️', pptx: '📽️',
+        // Архивы
+        zip: '📦', rar: '📦', '7z': '📦', tar: '📦',
+        // Код
+        js: '📜', html: '🌐', css: '🎨', json: '📋',
+        xml: '📋', php: '🐘', py: '🐍', java: '☕',
+        // Медиа
+        mp3: '🎵', wav: '🎵', mp4: '🎬', avi: '🎬',
+        jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🎭',
+        webp: '🖼️', svg: '🎨'
+    };
+    
+    return icons[ext] || '📎';
+}
+
 // Сделать функции глобальными
 window.openChat = openChat;
 window.sendMessage = sendMessage;
@@ -385,3 +425,4 @@ window.clearChat = clearChat;
 window.deleteChat = deleteChat;
 window.toggleChatMenu = toggleChatMenu;
 window.showMiniProfile = showMiniProfile;
+window.getFileIcon = getFileIcon;
