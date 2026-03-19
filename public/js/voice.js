@@ -16,7 +16,7 @@ function isVoiceSupported() {
     return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 }
 
-// Улучшенная функция добавления кнопки
+// Добавляем кнопку голосового сообщения
 function addVoiceButton() {
     const container = document.querySelector('.message-input-container');
     if (!container) {
@@ -66,9 +66,9 @@ function addVoiceButton() {
         isLongPress = false;
     });
     
-    // ДЛЯ ТЕЛЕФОНА - улучшенная обработка касаний
+    // Для тач-устройств (телефон)
     voiceBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault(); // Важно!
+        e.preventDefault();
         pressTimer = setTimeout(() => {
             isLongPress = true;
             startVoiceRecording();
@@ -103,31 +103,6 @@ function addVoiceButton() {
     
     console.log('🎤 Кнопка голосовых добавлена');
 }
-
-// Улучшенный перехват открытия чата
-const originalOpenChat = window.openChat;
-window.openChat = function(...args) {
-    const result = originalOpenChat.apply(this, args);
-    // Пробуем добавить кнопку несколько раз с задержками
-    setTimeout(addVoiceButton, 500);
-    setTimeout(addVoiceButton, 1000);
-    setTimeout(addVoiceButton, 1500);
-    return result;
-};
-
-// Добавляем CSS для мобильных (можно вставить прямо через JS)
-const style = document.createElement('style');
-style.textContent = `
-    @media (max-width: 768px) {
-        .voice-btn {
-            width: 40px !important;
-            height: 40px !important;
-            font-size: 18px !important;
-            margin-right: 5px !important;
-        }
-    }
-`;
-document.head.appendChild(style);
 
 // Начать запись
 async function startVoiceRecording() {
@@ -223,21 +198,27 @@ async function sendVoiceFile(audioFile, duration) {
     const progressBar = document.getElementById('uploadProgress');
     const progressFill = document.getElementById('progressFill');
     
-    progressBar.style.display = 'block';
+    if (progressBar) {
+        progressBar.style.display = 'block';
+    }
     
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `/api/upload`, true);
     
     xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
+        if (e.lengthComputable && progressFill) {
             const percent = (e.loaded / e.total) * 100;
             progressFill.style.width = percent + '%';
         }
     };
     
     xhr.onload = function() {
-        progressBar.style.display = 'none';
-        progressFill.style.width = '0%';
+        if (progressBar) {
+            progressBar.style.display = 'none';
+        }
+        if (progressFill) {
+            progressFill.style.width = '0%';
+        }
         
         if (xhr.status === 200) {
             const response = JSON.parse(xhr.responseText);
@@ -254,7 +235,16 @@ async function sendVoiceFile(audioFile, duration) {
             });
             
             addVoiceMessageToChat(response.fileUrl, duration);
+        } else {
+            alert('❌ Ошибка при отправке голоса');
         }
+    };
+    
+    xhr.onerror = function() {
+        if (progressBar) {
+            progressBar.style.display = 'none';
+        }
+        alert('❌ Ошибка сети при отправке');
     };
     
     xhr.send(formData);
@@ -369,9 +359,26 @@ function showTimer() {
 const originalOpenChat = window.openChat;
 window.openChat = function(...args) {
     const result = originalOpenChat.apply(this, args);
+    // Пробуем добавить кнопку несколько раз с задержками
     setTimeout(addVoiceButton, 500);
+    setTimeout(addVoiceButton, 1000);
+    setTimeout(addVoiceButton, 1500);
     return result;
 };
+
+// Добавляем CSS для мобильных
+const style = document.createElement('style');
+style.textContent = `
+    @media (max-width: 768px) {
+        .voice-btn {
+            width: 40px !important;
+            height: 40px !important;
+            font-size: 18px !important;
+            margin-right: 5px !important;
+        }
+    }
+`;
+document.head.appendChild(style);
 
 // Делаем функции глобальными
 window.startVoiceRecording = startVoiceRecording;
