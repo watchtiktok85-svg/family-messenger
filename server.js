@@ -19,6 +19,10 @@ const {
     deleteMessagesBetweenUsers
 } = require('./database');
 
+// В самом начале файла, после других переменных
+let SERVER_READY = false;
+let SERVER_START_TIME = Date.now();
+
 // После всех require, но до app creation
 const DEPLOY_ID = process.env.RAILWAY_DEPLOYMENT_ID || 
                   process.env.RENDER_DEPLOYMENT_ID || 
@@ -60,6 +64,22 @@ app.get('*', (req, res, next) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+app.get('/api/health', (req, res) => {
+    if (SERVER_READY) {
+        res.json({ 
+            status: 'ready', 
+            deployId: DEPLOY_ID,
+            uptime: process.uptime(),
+            startTime: SERVER_START_TIME
+        });
+    } else {
+        res.status(503).json({ 
+            status: 'starting', 
+            message: 'Сервер запускается...' 
+        });
+    }
+});
+
 // Создаем папки если их нет (только для временных файлов)
 if (!fs.existsSync('./temp')) {
   fs.mkdirSync('./temp', { recursive: true });
@@ -79,6 +99,7 @@ const pool = new Pool({
 console.log('🔄 Инициализация PostgreSQL...');
 initializeDatabase().then(() => {
   console.log('✅ База данных PostgreSQL готова');
+  SERVER_READY = true;
 }).catch(err => {
   console.error('❌ Ошибка инициализации БД:', err);
   process.exit(1);
