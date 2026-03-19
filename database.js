@@ -100,6 +100,16 @@ async function createTables() {
     `);
     console.log('✅ Таблица files готова');
     
+    try {
+    await pool.query(`
+        ALTER TABLE files 
+        ADD COLUMN IF NOT EXISTS file_data BYTEA
+    `);
+    console.log('✅ Колонка file_data добавлена/проверена');
+} catch (err) {
+    console.log('⚠️ Ошибка при добавлении колонки:', err.message);
+}
+    
     // Создаём индексы для быстрого поиска
     await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id)');
     await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id)');
