@@ -657,7 +657,6 @@ audio {
     border-top: 1px solid var(--border);
 }
 
-/* МОБИЛЬНЫЕ СТИЛИ - ЗДЕСЬ РЕШЕНИЕ ПРОБЛЕМЫ */
 @media (max-width: 600px) {
     #app {
         max-width: 100%;
@@ -685,8 +684,30 @@ audio {
         flex-shrink: 0;
     }
     
+    /* УБИРАЕМ padding-top у chat-header - он и создавал полосу */
     .chat-header {
-        padding-top: max(12px, env(safe-area-inset-top, 12px));
+        padding-top: 12px; /* Обычный отступ, без env() */
+    }
+    
+    /* ГЛАВНОЕ: Добавляем отступ для контента, а не для хедера */
+    .chats-screen {
+        padding-top: 0; /* Убираем возможные отступы */
+    }
+    
+    /* Заголовок списка чатов остается на месте */
+    .chats-screen .header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: var(--header-bg); /* Фон чтобы контент не просвечивал */
+        padding: 15px 20px;
+        margin: 0;
+        /* БЕЗ ВСЯКИХ safe-area-inset */
+    }
+    
+    /* Убеждаемся что в настройках тоже нет полосы */
+    .settings-container {
+        padding-top: 0;
     }
     
     .message {
