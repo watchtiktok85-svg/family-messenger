@@ -23,6 +23,17 @@ const app = document.getElementById('app');
 let currentTheme = localStorage.getItem('theme') || 'light';
 document.documentElement.setAttribute('data-theme', currentTheme);
 
+const SERVER_STATES = {
+    STARTING: 'starting',
+    READY: 'ready',
+    RESTARTING: 'restarting'
+};
+
+let currentDeployId = localStorage.getItem('deploy_id') || null;
+let serverState = SERVER_STATES.READY;
+let reconnectAttempts = 0;
+let statusCheckInterval;
+
 function toggleTheme() {
     currentTheme = currentTheme === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', currentTheme);
@@ -32,6 +43,128 @@ function toggleTheme() {
     if (themeText) {
         themeText.textContent = `Тема: ${currentTheme === 'light' ? 'Светлая' : 'Тёмная'}`;
     }
+}
+
+// Функция ожидания готовности сервера
+async function waitForServerReady() {
+    let attempts = 0;
+    const maxAttempts = 30;
+    
+    while (attempts < maxAttempts) {
+        try {
+            const response = await fetch(`${SERVER_URL}/api/health`);
+            const data = await response.json();
+            
+            if (data.status === 'ready') {
+                console.log('✅ Сервер готов, deployId:', data.deployId);
+                return data;
+            }
+        } catch (error) {
+            console.log(`⏳ Сервер ещё не отвечает (попытка ${attempts + 1}/${maxAttempts})`);
+        }
+        
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+    
+    throw new Error('Сервер не ответил вовремя');
+}
+
+// Основная функция проверки
+async function checkServerStatus() {
+    try {
+        const response = await fetch(`${SERVER_URL}/api/health`);
+        const data = await response.json();
+        
+        if (!currentDeployId) {
+            currentDeployId = data.deployId;
+            localStorage.setItem('deploy_id', data.deployId);
+            return;
+        }
+        
+        if (currentDeployId !== data.deployId) {
+            console.log('🔄 Обнаружен новый деплой:', data.deployId);
+            showWaitingScreen('🚀 Сервер обновляется...');
+            
+            try {
+                const newData = await waitForServerReady();
+                localStorage.setItem('deploy_id', newData.deployId);
+                currentDeployId = newData.deployId;
+                hideWaitingScreen();
+                showUpdateNotification();
+            } catch (error) {
+                console.error('❌ Ошибка ожидания сервера:', error);
+                showErrorScreen('Не удалось дождаться сервера');
+            }
+        }
+    } catch (error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            console.log('📡 Сервер временно недоступен');
+            serverState = SERVER_STATES.RESTARTING;
+            showWaitingScreen('🔄 Сервер перезагружается...');
+            
+            try {
+                const data = await waitForServerReady();
+                serverState = SERVER_STATES.READY;
+                hideWaitingScreen();
+                location.reload();
+            } catch (waitError) {
+                console.error('❌ Сервер так и не ответил');
+            }
+        }
+    }
+}
+
+// Экран ожидания
+function showWaitingScreen(message) {
+    const oldScreen = document.getElementById('waiting-screen');
+    if (oldScreen) oldScreen.remove();
+    
+    const screen = document.createElement('div');
+    screen.id = 'waiting-screen';
+    screen.className = 'waiting-screen';
+    screen.innerHTML = `
+        <div class="waiting-content">
+            <div class="waiting-spinner"></div>
+            <div class="waiting-message">${message}</div>
+            <div class="waiting-submessage">Это займёт несколько секунд...</div>
+        </div>
+    `;
+    document.body.appendChild(screen);
+}
+
+function hideWaitingScreen() {
+    const screen = document.getElementById('waiting-screen');
+    if (screen) {
+        screen.style.animation = 'fadeOut 0.3s';
+        setTimeout(() => screen.remove(), 300);
+    }
+}
+
+function showUpdateNotification() {
+    const notification = document.createElement('div');
+    notification.className = 'update-notification';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span>✨ Сервер обновлён! Перезагрузить?</span>
+            <button onclick="location.reload()">Сейчас</button>
+            <button onclick="this.parentElement.parentElement.remove()">Позже</button>
+        </div>
+    `;
+    document.body.appendChild(notification);
+}
+
+function showErrorScreen(message) {
+    const screen = document.createElement('div');
+    screen.className = 'waiting-screen';
+    screen.innerHTML = `
+        <div class="waiting-content">
+            <div style="color: #ff4444; font-size: 48px; margin-bottom: 20px;">⚠️</div>
+            <div class="waiting-message">${message}</div>
+            <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 30px; background: var(--accent); color: white; border: none; border-radius: 8px;">Повторить</button>
+        </div>
+    `;
+    document.body.appendChild(screen);
 }
 
 // Функции для выдвижной панели
@@ -577,3 +710,6 @@ window.addEventListener('beforeunload', () => {
 });
 
 document.addEventListener('DOMContentLoaded', init);
+
+setInterval(checkServerStatus, 10000); // Каждые 10 секунд
+checkServerStatus();
