@@ -190,9 +190,7 @@ function renderMessage(msg) {
     const imageUrl = msg.message.startsWith('http') 
         ? msg.message 
         : `${SERVER_URL}${msg.message}`;
-    
     content = `<img src="${imageUrl}" class="message-media" onclick="openImageModal('${imageUrl}')">`;
-}
      } else if (msg.type === 'audio') {
         const duration = msg.duration || 0;
         const minutes = Math.floor(duration / 60);
