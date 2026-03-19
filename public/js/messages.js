@@ -188,7 +188,7 @@ function renderMessage(msg) {
     } else if (msg.type === 'image') {
     const imageUrl = msg.message.startsWith('http') 
         ? msg.message 
-        : (typeof SERVER_URL !== 'undefined' ? SERVER_URL : '') + msg.message;
+        : (typeof ${SERVER_URL} !== 'undefined' ? ${SERVER_URL} : '') + msg.message;
     
     content = `<img src="${imageUrl}" class="message-media" onclick="openImageModal('${imageUrl}')">`;
 } else if (msg.type === 'audio') {
