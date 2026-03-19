@@ -131,6 +131,7 @@ const authRoutes = require('./routes/auth')({
     findUserById, 
     createUser, 
     updateUserStatus
+    getUsers,
 });
 const messageRoutes = require('./routes/messages')({ 
     getMessagesBetweenUsers, 
