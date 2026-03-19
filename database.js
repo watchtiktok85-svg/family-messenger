@@ -241,14 +241,39 @@ async function getRecentChats(userId) {
                 WHEN sender_id = $1 THEN receiver_id 
                 ELSE sender_id 
             END as contact_id,
-            (SELECT username FROM users WHERE id = contact_id) as contact_name,
+            (SELECT username FROM users WHERE id = 
+                CASE 
+                    WHEN sender_id = $1 THEN receiver_id 
+                    ELSE sender_id 
+                END
+            ) as contact_name,
             (SELECT message FROM messages WHERE 
-                (sender_id = $1 AND receiver_id = contact_id) OR 
-                (sender_id = contact_id AND receiver_id = $1) 
+                (sender_id = $1 AND receiver_id = 
+                    CASE 
+                        WHEN sender_id = $1 THEN receiver_id 
+                        ELSE sender_id 
+                    END
+                ) OR 
+                (sender_id = 
+                    CASE 
+                        WHEN sender_id = $1 THEN receiver_id 
+                        ELSE sender_id 
+                    END
+                AND receiver_id = $1) 
                 ORDER BY timestamp DESC LIMIT 1) as last_message,
             (SELECT timestamp FROM messages WHERE 
-                (sender_id = $1 AND receiver_id = contact_id) OR 
-                (sender_id = contact_id AND receiver_id = $1) 
+                (sender_id = $1 AND receiver_id = 
+                    CASE 
+                        WHEN sender_id = $1 THEN receiver_id 
+                        ELSE sender_id 
+                    END
+                ) OR 
+                (sender_id = 
+                    CASE 
+                        WHEN sender_id = $1 THEN receiver_id 
+                        ELSE sender_id 
+                    END
+                AND receiver_id = $1) 
                 ORDER BY timestamp DESC LIMIT 1) as last_timestamp
          FROM messages 
          WHERE sender_id = $1 OR receiver_id = $1`,
