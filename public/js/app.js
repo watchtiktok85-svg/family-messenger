@@ -442,16 +442,42 @@ function showNotification(text) {
     }
 }
 
+// Форматирование времени (НОВАЯ ВЕРСИЯ)
 function formatTime(timestamp) {
     if (!timestamp) return '';
-    const date = new Date(parseInt(timestamp));
+    
+    // Проверяем, в секундах или миллисекундах
+    let date;
+    if (timestamp > 1000000000000) {
+        // Если больше 1 триллиона - это миллисекунды
+        date = new Date(timestamp);
+    } else {
+        // Если меньше - это секунды, умножаем на 1000
+        date = new Date(timestamp * 1000);
+    }
+    
     const now = new Date();
     const diff = now - date;
     
-    if (diff < 60000) return 'только что';
-    if (diff < 3600000) return Math.floor(diff / 60000) + ' мин';
-    if (diff < 86400000) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    return date.toLocaleDateString();
+    // Если сегодня
+    if (date.toDateString() === now.toDateString()) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // Если вчера
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === yesterday.toDateString()) {
+        return 'вчера';
+    }
+    
+    // Если в этом году
+    if (date.getFullYear() === now.getFullYear()) {
+        return date.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+    }
+    
+    // Если в прошлом году
+    return date.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
 
 function formatFileSize(bytes) {
