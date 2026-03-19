@@ -19,6 +19,13 @@ const {
     deleteMessagesBetweenUsers
 } = require('./database');
 
+// После всех require, но до app creation
+const DEPLOY_ID = process.env.RAILWAY_DEPLOYMENT_ID || 
+                  process.env.RENDER_DEPLOYMENT_ID || 
+                  'dev-' + Date.now();
+
+const APP_START_TIME = Date.now();
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -36,6 +43,14 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/api/status', (req, res) => {
+    res.json({
+        deployId: DEPLOY_ID,
+        startTime: APP_START_TIME,
+        uptime: process.uptime()
+    });
+});
 
 // Обработка для клиентской части (SPA)
 app.get('*', (req, res, next) => {
