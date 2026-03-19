@@ -50,41 +50,47 @@ module.exports = ({ getMessagesBetweenUsers, createMessage, markMessagesAsRead, 
     }
   });
 
-  // Очистить историю чата
-  router.delete('/clear/:userId/:contactId', async (req, res) => {
+  // Очистить историю чата (удалить все сообщения с пользователем)
+router.delete('/clear/:userId/:contactId', async (req, res) => {
     const { userId, contactId } = req.params;
     
     try {
-      // В database.js нужно добавить функцию deleteMessagesBetweenUsers
-      // Пока заглушка
-      res.json({ 
-        success: true, 
-        deleted: 0,
-        message: 'Функция в разработке'
-      });
+        const result = await db.query(
+            'DELETE FROM messages WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)',
+            [userId, contactId]
+        );
+        
+        res.json({ 
+            success: true, 
+            deleted: result.rowCount,
+            message: `Удалено ${result.rowCount} сообщений`
+        });
     } catch (error) {
-      console.error('❌ Ошибка очистки чата:', error);
-      res.status(500).json({ error: 'Ошибка при очистке чата' });
+        console.error('❌ Ошибка очистки чата:', error);
+        res.status(500).json({ error: 'Ошибка при очистке чата' });
     }
-  });
+});
 
-  // Удалить чат полностью
-  router.delete('/delete-chat/:userId/:contactId', async (req, res) => {
+  // Удалить чат полностью (удаляет сообщения и чат исчезает из списка)
+router.delete('/delete-chat/:userId/:contactId', async (req, res) => {
     const { userId, contactId } = req.params;
     
     try {
-      // В database.js нужно добавить функцию deleteMessagesBetweenUsers
-      // Пока заглушка
-      res.json({ 
-        success: true, 
-        deleted: 0,
-        message: 'Функция в разработке'
-      });
+        const result = await db.query(
+            'DELETE FROM messages WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)',
+            [userId, contactId]
+        );
+        
+        res.json({ 
+            success: true, 
+            deleted: result.rowCount,
+            message: 'Чат удален'
+        });
     } catch (error) {
-      console.error('❌ Ошибка удаления чата:', error);
-      res.status(500).json({ error: 'Ошибка при удалении чата' });
+        console.error('❌ Ошибка удаления чата:', error);
+        res.status(500).json({ error: 'Ошибка при удалении чата' });
     }
-  });
+});
 
   // Сохранить бэкап всех сообщений
   router.get('/backup/:userId', async (req, res) => {
