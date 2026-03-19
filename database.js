@@ -288,12 +288,12 @@ module.exports = {
     findUserById,
     createUser,
     updateUserStatus,
-    getUsers,                    // ← ЭТО НУЖНО ДОБАВИТЬ!
+    getUsers,                    
     getMessagesBetweenUsers,
     createMessage,
     markMessagesAsRead,
     getRecentChats,
-    deleteMessagesBetweenUsers,  // ← ЭТО НУЖНО ДОБАВИТЬ!
-    updateUsername,               // ← ЭТО НУЖНО ДОБАВИТЬ!
+    deleteMessagesBetweenUsers,  
+    updateUsername,             
     cleanupOldMessages
 };
