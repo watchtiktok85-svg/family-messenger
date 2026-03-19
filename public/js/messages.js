@@ -121,7 +121,7 @@ async function clearChat(userId, username) {
     }
 }
 
-// Удалить чат полностью (удаляет сообщения И ЧАТ ИСЧЕЗАЕТ ИЗ СПИСКА)
+// Удалить чат полностью
 async function deleteChat(userId, username) {
     if (!confirm(`Удалить чат с ${username}? Все сообщения будут удалены, и чат исчезнет из списка.`)) {
         return;
