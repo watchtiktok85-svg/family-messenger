@@ -16,10 +16,14 @@ function isVoiceSupported() {
     return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
 }
 
-// Добавляем кнопку голосового сообщения
+// Улучшенная функция добавления кнопки
 function addVoiceButton() {
     const container = document.querySelector('.message-input-container');
-    if (!container) return;
+    if (!container) {
+        // Если контейнер еще не загрузился, пробуем снова через 0.5 сек
+        setTimeout(addVoiceButton, 500);
+        return;
+    }
     
     // Проверяем, есть ли уже кнопка
     if (document.querySelector('.voice-btn')) return;
@@ -29,10 +33,14 @@ function addVoiceButton() {
     voiceBtn.innerHTML = '🎤';
     voiceBtn.title = 'Голосовое сообщение (нажмите и удерживайте)';
     
+    // Добавляем data-атрибут для мобильных
+    voiceBtn.setAttribute('data-longpress', 'true');
+    
     // Переменные для долгого нажатия
     let pressTimer;
     let isLongPress = false;
     
+    // Для мыши (компьютер)
     voiceBtn.addEventListener('mousedown', (e) => {
         e.preventDefault();
         pressTimer = setTimeout(() => {
@@ -58,14 +66,14 @@ function addVoiceButton() {
         isLongPress = false;
     });
     
-    // Для тач-устройств
+    // ДЛЯ ТЕЛЕФОНА - улучшенная обработка касаний
     voiceBtn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
+        e.preventDefault(); // Важно!
         pressTimer = setTimeout(() => {
             isLongPress = true;
             startVoiceRecording();
         }, 500);
-    });
+    }, { passive: false });
     
     voiceBtn.addEventListener('touchend', (e) => {
         e.preventDefault();
@@ -76,6 +84,15 @@ function addVoiceButton() {
         }
     });
     
+    voiceBtn.addEventListener('touchcancel', (e) => {
+        e.preventDefault();
+        clearTimeout(pressTimer);
+        if (voiceRecorder.isRecording) {
+            stopVoiceRecording();
+        }
+        isLongPress = false;
+    });
+    
     // Вставляем перед кнопкой отправки
     const sendBtn = container.querySelector('.send-btn');
     if (sendBtn) {
@@ -83,7 +100,34 @@ function addVoiceButton() {
     } else {
         container.appendChild(voiceBtn);
     }
+    
+    console.log('🎤 Кнопка голосовых добавлена');
 }
+
+// Улучшенный перехват открытия чата
+const originalOpenChat = window.openChat;
+window.openChat = function(...args) {
+    const result = originalOpenChat.apply(this, args);
+    // Пробуем добавить кнопку несколько раз с задержками
+    setTimeout(addVoiceButton, 500);
+    setTimeout(addVoiceButton, 1000);
+    setTimeout(addVoiceButton, 1500);
+    return result;
+};
+
+// Добавляем CSS для мобильных (можно вставить прямо через JS)
+const style = document.createElement('style');
+style.textContent = `
+    @media (max-width: 768px) {
+        .voice-btn {
+            width: 40px !important;
+            height: 40px !important;
+            font-size: 18px !important;
+            margin-right: 5px !important;
+        }
+    }
+`;
+document.head.appendChild(style);
 
 // Начать запись
 async function startVoiceRecording() {
