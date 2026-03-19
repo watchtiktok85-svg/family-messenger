@@ -234,7 +234,8 @@ async function sendVoiceFile(audioFile, duration) {
                 duration: duration
             });
             
-            addVoiceMessageToChat(response.fileUrl, duration);
+            // УБИРАЕМ addVoiceMessageToChat - оно вызывало дублирование!
+            
         } else {
             alert('❌ Ошибка при отправке голоса');
         }
