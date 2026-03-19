@@ -50,20 +50,17 @@ module.exports = ({ getMessagesBetweenUsers, createMessage, markMessagesAsRead, 
     }
   });
 
-  // Очистить историю чата (удалить все сообщения с пользователем)
+  // Очистить историю чата
 router.delete('/clear/:userId/:contactId', async (req, res) => {
     const { userId, contactId } = req.params;
     
     try {
-        const result = await db.query(
-            'DELETE FROM messages WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)',
-            [userId, contactId]
-        );
+        const deleted = await deleteMessagesBetweenUsers(parseInt(userId), parseInt(contactId));
         
         res.json({ 
             success: true, 
-            deleted: result.rowCount,
-            message: `Удалено ${result.rowCount} сообщений`
+            deleted: deleted,
+            message: `Удалено ${deleted} сообщений`
         });
     } catch (error) {
         console.error('❌ Ошибка очистки чата:', error);
@@ -71,19 +68,16 @@ router.delete('/clear/:userId/:contactId', async (req, res) => {
     }
 });
 
-  // Удалить чат полностью (удаляет сообщения и чат исчезает из списка)
+// Удалить чат полностью
 router.delete('/delete-chat/:userId/:contactId', async (req, res) => {
     const { userId, contactId } = req.params;
     
     try {
-        const result = await db.query(
-            'DELETE FROM messages WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)',
-            [userId, contactId]
-        );
+        const deleted = await deleteMessagesBetweenUsers(parseInt(userId), parseInt(contactId));
         
         res.json({ 
             success: true, 
-            deleted: result.rowCount,
+            deleted: deleted,
             message: 'Чат удален'
         });
     } catch (error) {
