@@ -130,7 +130,6 @@ const authRoutes = require('./routes/auth')({
     findUserByPhone, 
     findUserById, 
     createUser, 
-    const { getUsers } = require('./database')
     updateUserStatus
 });
 const messageRoutes = require('./routes/messages')({ 
