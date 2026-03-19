@@ -164,7 +164,19 @@ document.addEventListener('click', function(event) {
 
 function renderMessage(msg) {
     const isSent = msg.sender_id === currentUser.id;
-    const time = new Date(parseInt(msg.timestamp)).toLocaleTimeString([], { 
+    
+    // Безопасное преобразование timestamp
+    let timestamp = msg.timestamp;
+    if (typeof timestamp === 'string') {
+        timestamp = parseInt(timestamp);
+    }
+    
+    // Проверяем формат
+    if (timestamp < 1000000000000) {
+        timestamp = timestamp * 1000; // конвертируем секунды в миллисекунды
+    }
+    
+    const time = new Date(timestamp).toLocaleTimeString([], { 
         hour: '2-digit', 
         minute: '2-digit' 
     });
@@ -173,11 +185,9 @@ function renderMessage(msg) {
     
     if (msg.type === 'text') {
         content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
-    } 
-    else if (msg.type === 'image') {
+    } else if (msg.type === 'image') {
         content = `<img src="${msg.message}" class="message-media" onclick="openImageModal('${msg.message}')">`;
-    } 
-    else if (msg.type === 'audio') {
+    } else if (msg.type === 'audio') {
         const duration = msg.duration || 0;
         const minutes = Math.floor(duration / 60);
         const seconds = Math.floor(duration % 60);
@@ -189,8 +199,7 @@ function renderMessage(msg) {
                 <div class="voice-duration">${durationText}</div>
             </div>
         `;
-    } 
-    else {
+    } else {
         content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
     }
     
