@@ -215,8 +215,10 @@ async function getMessagesBetweenUsers(userId1, userId2) {
 
 // Создать новое сообщение
 async function createMessage(messageData) {
-    // Используем секунды вместо миллисекунд
+    // Используем секунды вместо миллисекунд - ЭТО КЛЮЧЕВОЕ ИЗМЕНЕНИЕ!
     const timestampInSeconds = Math.floor(Date.now() / 1000);
+    
+    console.log(`📝 Создание сообщения: timestamp в секундах = ${timestampInSeconds}`); // Для отладки
     
     const result = await pool.query(
         `INSERT INTO messages (sender_id, receiver_id, message, type, file_id, timestamp, status) 
