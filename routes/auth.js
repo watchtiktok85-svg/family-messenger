@@ -1,17 +1,8 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { Pool } = require('pg');
 const router = express.Router();
 
-// Создаём подключение к БД
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
-
-module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus }) => {
+module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus, getUsers }) => {
   
   // Регистрация по номеру телефона
   router.post('/register', async (req, res) => {
@@ -89,27 +80,26 @@ module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus 
     }
   });
 
-  // Получить список всех пользователей (ПРЯМОЙ ЗАПРОС К БД)
+  // Получить список всех пользователей (используем getUsers)
   router.get('/users', async (req, res) => {
     const { exclude } = req.query;
     
     try {
-      // ПРЯМОЙ SQL ЗАПРОС - БЕЗ getUsers()
-      const result = await pool.query('SELECT id, phone, username, avatar, status, last_seen FROM users');
-      let users = result.rows;
+      const users = await getUsers();
       
+      let filteredUsers = users;
       if (exclude) {
-        users = users.filter(u => u.id !== parseInt(exclude));
+        filteredUsers = users.filter(u => u.id !== parseInt(exclude));
       }
       
-      res.json(users);
+      res.json(filteredUsers);
     } catch (error) {
       console.error('Ошибка получения пользователей:', error);
       res.status(500).json({ error: 'Ошибка сервера' });
     }
   });
 
-  // Поиск пользователей по телефону или имени (ПРЯМОЙ ЗАПРОС)
+  // Поиск пользователей по телефону или имени
   router.get('/search', async (req, res) => {
     const { query } = req.query;
     
@@ -118,13 +108,14 @@ module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus 
     }
     
     try {
-      // ПРЯМОЙ SQL ЗАПРОС С ПОИСКОМ
-      const result = await pool.query(
-        'SELECT id, phone, username, avatar, status FROM users WHERE phone LIKE $1 OR username ILIKE $1 LIMIT 20',
-        [`%${query}%`]
-      );
+      const users = await getUsers();
       
-      res.json(result.rows);
+      const filtered = users.filter(user => 
+        user.phone.includes(query) || 
+        user.username.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 20);
+      
+      res.json(filtered);
     } catch (error) {
       console.error('Ошибка поиска:', error);
       res.status(500).json({ error: 'Ошибка сервера' });
@@ -169,7 +160,7 @@ module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus 
     }
   });
 
-  // Получить пользователей по массиву ID (ПРЯМОЙ ЗАПРОС)
+  // Получить пользователей по массиву ID
   router.get('/by-ids', async (req, res) => {
     const { ids } = req.query;
     
@@ -180,12 +171,9 @@ module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus 
     const idArray = ids.split(',').map(Number);
     
     try {
-      // ПРЯМОЙ SQL ЗАПРОС
-      const result = await pool.query(
-        `SELECT id, phone, username, avatar, status FROM users WHERE id = ANY($1::int[])`,
-        [idArray]
-      );
-      res.json(result.rows);
+      const users = await getUsers();
+      const filtered = users.filter(u => idArray.includes(u.id));
+      res.json(filtered);
     } catch (error) {
       console.error('Ошибка получения пользователей:', error);
       res.status(500).json({ error: 'Ошибка сервера' });
@@ -202,7 +190,11 @@ module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus 
     }
     
     try {
-      // ПРЯМОЙ SQL ЗАПРОС
+      // Здесь нужно добавить функцию updateUsername в database.js
+      // Пока через прямой запрос
+      const { Pool } = require('pg');
+      const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
+      
       await pool.query('UPDATE users SET username = $1 WHERE id = $2', [newUsername, userId]);
       res.json({ success: true, username: newUsername });
     } catch (error) {
