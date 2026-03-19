@@ -520,6 +520,53 @@ if (Notification.permission === 'default') {
     Notification.requestPermission();
 }
 
+let currentDeployId = localStorage.getItem('deploy_id') || null;
+
+async function checkDeployStatus() {
+    try {
+        const response = await fetch(`${SERVER_URL}/api/status`);
+        const data = await response.json();
+        
+        if (!currentDeployId) {
+            currentDeployId = data.deployId;
+            localStorage.setItem('deploy_id', data.deployId);
+            return;
+        }
+        
+        if (currentDeployId !== data.deployId) {
+            console.log('🔄 Обнаружен новый деплой:', data.deployId);
+            showDeployNotification();
+            localStorage.setItem('deploy_id', data.deployId);
+            currentDeployId = data.deployId;
+        }
+    } catch (error) {
+        console.log('📡 Ошибка проверки статуса:', error);
+    }
+}
+
+function showDeployNotification() {
+    const notification = document.createElement('div');
+    notification.className = 'deploy-notification';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span>🚀 Сервер обновлён! Перезагрузить?</span>
+            <button onclick="location.reload()">Сейчас</button>
+            <button onclick="this.parentElement.parentElement.remove()">Позже</button>
+        </div>
+    `;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (document.body.contains(notification)) {
+            location.reload();
+        }
+    }, 10000);
+}
+
+// Запускаем проверку
+setInterval(checkDeployStatus, 30000);
+document.addEventListener('DOMContentLoaded', checkDeployStatus);
+
 window.addEventListener('beforeunload', () => {
     if (currentUser && socket) {
         navigator.sendBeacon(`${SERVER_URL}/api/auth/logout/${currentUser.id}`, '');
