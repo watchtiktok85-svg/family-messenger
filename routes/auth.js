@@ -1,8 +1,17 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const { Pool } = require('pg');
 const router = express.Router();
 
-module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus, getUsers }) => {
+// Создаём подключение к БД
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
+
+module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus }) => {
   
   // Регистрация по номеру телефона
   router.post('/register', async (req, res) => {
@@ -12,7 +21,6 @@ module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus,
       return res.status(400).json({ error: 'Все поля обязательны' });
     }
     
-    // Валидация номера телефона
     const phoneRegex = /^\+?[0-9]{10,15}$/;
     if (!phoneRegex.test(phone)) {
       return res.status(400).json({ error: 'Неверный формат номера телефона' });
@@ -81,26 +89,27 @@ module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus,
     }
   });
 
-  // Получить список всех пользователей
+  // Получить список всех пользователей (ПРЯМОЙ ЗАПРОС К БД)
   router.get('/users', async (req, res) => {
     const { exclude } = req.query;
     
     try {
-      const users = await getUsers();
+      // ПРЯМОЙ SQL ЗАПРОС - БЕЗ getUsers()
+      const result = await pool.query('SELECT id, phone, username, avatar, status, last_seen FROM users');
+      let users = result.rows;
       
-      let filteredUsers = users;
       if (exclude) {
-        filteredUsers = users.filter(u => u.id !== parseInt(exclude));
+        users = users.filter(u => u.id !== parseInt(exclude));
       }
       
-      res.json(filteredUsers);
+      res.json(users);
     } catch (error) {
       console.error('Ошибка получения пользователей:', error);
       res.status(500).json({ error: 'Ошибка сервера' });
     }
   });
 
-  // Поиск пользователей по телефону или имени
+  // Поиск пользователей по телефону или имени (ПРЯМОЙ ЗАПРОС)
   router.get('/search', async (req, res) => {
     const { query } = req.query;
     
@@ -109,14 +118,13 @@ module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus,
     }
     
     try {
-      const users = await getUsers();
+      // ПРЯМОЙ SQL ЗАПРОС С ПОИСКОМ
+      const result = await pool.query(
+        'SELECT id, phone, username, avatar, status FROM users WHERE phone LIKE $1 OR username ILIKE $1 LIMIT 20',
+        [`%${query}%`]
+      );
       
-      const filtered = users.filter(user => 
-        user.phone.includes(query) || 
-        user.username.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 20);
-      
-      res.json(filtered);
+      res.json(result.rows);
     } catch (error) {
       console.error('Ошибка поиска:', error);
       res.status(500).json({ error: 'Ошибка сервера' });
@@ -161,7 +169,7 @@ module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus,
     }
   });
 
-  // Получить пользователей по массиву ID
+  // Получить пользователей по массиву ID (ПРЯМОЙ ЗАПРОС)
   router.get('/by-ids', async (req, res) => {
     const { ids } = req.query;
     
@@ -172,9 +180,12 @@ module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus,
     const idArray = ids.split(',').map(Number);
     
     try {
-      const users = await getUsers();
-      const filtered = users.filter(u => idArray.includes(u.id));
-      res.json(filtered);
+      // ПРЯМОЙ SQL ЗАПРОС
+      const result = await pool.query(
+        `SELECT id, phone, username, avatar, status FROM users WHERE id = ANY($1::int[])`,
+        [idArray]
+      );
+      res.json(result.rows);
     } catch (error) {
       console.error('Ошибка получения пользователей:', error);
       res.status(500).json({ error: 'Ошибка сервера' });
@@ -191,8 +202,8 @@ module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus,
     }
     
     try {
-      // Здесь нужно добавить функцию updateUsername в database.js
-      // Пока заглушка
+      // ПРЯМОЙ SQL ЗАПРОС
+      await pool.query('UPDATE users SET username = $1 WHERE id = $2', [newUsername, userId]);
       res.json({ success: true, username: newUsername });
     } catch (error) {
       console.error('Ошибка изменения имени:', error);
