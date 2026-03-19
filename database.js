@@ -214,13 +214,22 @@ async function getMessagesBetweenUsers(userId1, userId2) {
 
 // Создать новое сообщение
 async function createMessage(messageData) {
+    // Используем секунды вместо миллисекунд
+    const timestampInSeconds = Math.floor(Date.now() / 1000);
+    
     const result = await pool.query(
         `INSERT INTO messages (sender_id, receiver_id, message, type, file_id, timestamp, status) 
          VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
         [messageData.senderId, messageData.receiverId, messageData.message, 
-         messageData.type, messageData.fileId || null, Date.now(), 'sent']
+         messageData.type, messageData.fileId || null, timestampInSeconds, 'sent']
     );
-    return { id: result.rows[0].id, ...messageData, timestamp: Date.now() };
+    
+    // Для клиента возвращаем в миллисекундах (умножаем на 1000)
+    return { 
+        id: result.rows[0].id, 
+        ...messageData, 
+        timestamp: timestampInSeconds * 1000 
+    };
 }
 
 // Отметить сообщения как прочитанные
