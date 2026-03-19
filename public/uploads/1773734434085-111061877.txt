@@ -1,0 +1,44 @@
+Hypervisor Notes
+
+Enable virtualization in bios settings (VT-x)
+
+For users who have Intel 8th gen and below processors; it is needed to disable the OS Meltdown mitigations to be able to load the hypervisor.
+Some new generations may also have this enabled, it can be checked via the included InSpectre tool in the Hypervisor folder.
+If the "Disable Meltdown Protection" button is grayed out, it is patched on hardware level for your CPU and no action is needed, proceed with the next steps.
+
+Kernel anticheats will be problematic, make sure they are off before performing the rest of the steps.
+
+Enable test signing mode via bcdedit (bcdedit /set testsigning on)
+For users with Hyper-V windows feature enabled, it's required to keep its hypervisor off with the following command:
+bcdedit /set hypervisorlaunchtype off
+
+Keep Secure Boot disabled
+Keep Windows Defender memory integrity and credential guard off (VBS and HVCI)
+
+Usage:
+
+In a cmd or powershell with admin rights, after meeting the requirements:
+
+sc create denuvo type=kernel start=demand binPath=C:\Drivers\Hypervisor\hyperkd.sys (your full path for hyperkd.sys)
+sc start denuvo
+
+After you close the game, you can stop the hypervisor service with
+
+sc stop denuvo
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Installation steps:
+
+1 - Load the hyperkd.sys file in the "Hypervisor" folder. The .dll files must remain next to it.
+2 - Copy and paste everything else apart from the hypervisor folders to the main game directory
+3 - Launch AtomicHeart-Win64-Shipping.exe
+
+Disclaimer: Kernel drivers are able to cause blue screens when there are mistakes in the code, this has not yet been tested for long term stability.
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+!!!!!!!! ADVANCED USERS ONLY !!!!!!!!
+EFIGUARD Method
+https://github.com/Mattiwatti/EfiGuard
+You will find the required files and instructions inside the folder: OPTIONAL - EFIGUARD
