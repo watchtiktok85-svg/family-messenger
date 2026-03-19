@@ -214,7 +214,7 @@ async function searchUser() {
     
     try {
         const response = await fetch(`${SERVER_URL}/api/auth/search?query=${encodeURIComponent(query)}`);
-        const users = await response.json();
+        const users = await getUsers();
         
         if (users.length === 0) {
             alert('Пользователи не найдены');
