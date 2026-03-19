@@ -1332,3 +1332,52 @@ input:checked + .slider:before {
         height: 36px;
     }
 }
+
+/* Добавь в самый конец файла */
+
+/* Уведомление о новом деплое */
+.deploy-notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    animation: slideDown 0.3s;
+}
+
+.notification-content {
+    background: var(--accent);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.notification-content button {
+    background: white;
+    color: var(--accent);
+    border: none;
+    padding: 8px 20px;
+    border-radius: 25px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.notification-content button:hover {
+    transform: scale(1.05);
+}
+
+@keyframes slideDown {
+    from {
+        transform: translate(-50%, -100px);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}
