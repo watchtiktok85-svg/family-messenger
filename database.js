@@ -211,7 +211,12 @@ async function getMessagesBetweenUsers(userId1, userId2) {
          ORDER BY timestamp ASC`,
         [userId1, userId2]
     );
-    return result.rows;
+    
+    // Конвертируем timestamp в миллисекунды для клиента
+    return result.rows.map(msg => ({
+        ...msg,
+        timestamp: msg.timestamp * 1000
+    }));
 }
 
 // Создать новое сообщение (ИСПРАВЛЕННАЯ ВЕРСИЯ)
@@ -295,7 +300,12 @@ async function getRecentChats(userId) {
          WHERE sender_id = $1 OR receiver_id = $1`,
         [userId]
     );
-    return result.rows;
+    
+    // Конвертируем timestamp в миллисекунды для клиента
+    return result.rows.map(row => ({
+        ...row,
+        last_timestamp: row.last_timestamp ? row.last_timestamp * 1000 : null
+    }));
 }
 
 // Функция для очистки старых сообщений
