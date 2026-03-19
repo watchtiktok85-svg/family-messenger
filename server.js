@@ -138,7 +138,8 @@ const messageRoutes = require('./routes/messages')({
     getMessagesBetweenUsers, 
     createMessage, 
     markMessagesAsRead, 
-    getRecentChats
+    getRecentChats,
+    deleteMessagesBetweenUsers
 });
 
 app.use('/api/auth', authRoutes);
