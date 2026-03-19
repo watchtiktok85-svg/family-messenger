@@ -442,22 +442,33 @@ function showNotification(text) {
     }
 }
 
-// Форматирование времени (НОВАЯ ВЕРСИЯ)
+// Форматирование времени (УНИВЕРСАЛЬНАЯ ВЕРСИЯ)
 function formatTime(timestamp) {
     if (!timestamp) return '';
     
+    // Пробуем преобразовать в число
+    let ts = timestamp;
+    if (typeof timestamp === 'string') {
+        ts = parseInt(timestamp);
+    }
+    
     // Проверяем, в секундах или миллисекундах
     let date;
-    if (timestamp > 1000000000000) {
+    if (ts > 1000000000000) {
         // Если больше 1 триллиона - это миллисекунды
-        date = new Date(timestamp);
+        date = new Date(ts);
     } else {
         // Если меньше - это секунды, умножаем на 1000
-        date = new Date(timestamp * 1000);
+        date = new Date(ts * 1000);
+    }
+    
+    // Проверка на валидность даты
+    if (isNaN(date.getTime())) {
+        console.error('Invalid date:', timestamp);
+        return '';
     }
     
     const now = new Date();
-    const diff = now - date;
     
     // Если сегодня
     if (date.toDateString() === now.toDateString()) {
