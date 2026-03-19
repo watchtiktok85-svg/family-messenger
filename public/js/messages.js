@@ -186,8 +186,14 @@ function renderMessage(msg) {
     if (msg.type === 'text') {
         content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
     } else if (msg.type === 'image') {
-        content = `<img src="${msg.message}" class="message-media" onclick="openImageModal('${msg.message}')">`;
-    } else if (msg.type === 'audio') {
+    // Формируем полный URL для изображения
+    const imageUrl = msg.message.startsWith('http') 
+        ? msg.message 
+        : `${SERVER_URL}${msg.message}`;
+    
+    content = `<img src="${imageUrl}" class="message-media" onclick="openImageModal('${imageUrl}')">`;
+}
+     } else if (msg.type === 'audio') {
         const duration = msg.duration || 0;
         const minutes = Math.floor(duration / 60);
         const seconds = Math.floor(duration % 60);
