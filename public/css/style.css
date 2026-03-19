@@ -1512,3 +1512,25 @@ input:checked + .slider:before {
         opacity: 1;
     }
 }
+
+/* Принудительное исправление для мобильных */
+@media (max-width: 600px) {
+    html, body {
+        height: 100% !important;
+        overflow: hidden !important;
+    }
+    
+    #app {
+        height: 100% !important;
+        max-height: 100% !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    
+    /* Убираем все safe-area-inset */
+    .header, .chat-header, .auth-header {
+        padding-top: 12px !important;
+        padding-top: constant(safe-area-inset-top, 12px) !important;
+        padding-top: env(safe-area-inset-top, 12px) !important;
+    }
+}
