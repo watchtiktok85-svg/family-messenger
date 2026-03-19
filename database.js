@@ -93,6 +93,7 @@ async function createTables() {
             file_path TEXT NOT NULL,                      -- путь к файлу
             file_size INTEGER,                             -- размер файла
             file_type TEXT,                                -- тип файла
+            file_data BYTEA,
             uploaded_at BIGINT,                            -- время загрузки
             FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
         )
