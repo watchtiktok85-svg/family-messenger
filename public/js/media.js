@@ -41,7 +41,7 @@ function sendFile(file) {
                 messageType = 'audio';
             }
             
-            // Отправляем через сокет
+            // Отправляем через сокет (НЕ добавляем локально)
             socket.emit('send_message', {
                 senderId: currentUser.id,
                 receiverId: currentChat.id,
@@ -50,11 +50,11 @@ function sendFile(file) {
                 fileId: response.fileId,
                 fileName: file.name,
                 fileSize: file.size,
-                fileType: file.type
+                fileType: file.type,
+                duration: file.type.startsWith('audio/') ? Math.round(file.size / 16000) : 0
             });
             
-            // Добавляем сообщение сразу в чат
-            addLocalFileMessage(response, file);
+            // УБИРАЕМ addLocalFileMessage - оно вызывало дублирование!
             
         } else {
             alert('❌ Ошибка при загрузке файла');
