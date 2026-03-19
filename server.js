@@ -345,6 +345,21 @@ io.on('connection', (socket) => {
   });
 });
 
+// ========== ПОЛУЧАЕМ ЛОКАЛЬНЫЙ IP ==========
+const { networkInterfaces } = require('os');
+const nets = networkInterfaces();
+let localIP = '0.0.0.0'; // Значение по умолчанию
+
+for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+        // Пропускаем не IPv4 и внутренние интерфейсы
+        if (net.family === 'IPv4' && !net.internal) {
+            localIP = net.address;
+            break;
+        }
+    }
+}
+
 // ========== ЗАПУСК ==========
 const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
