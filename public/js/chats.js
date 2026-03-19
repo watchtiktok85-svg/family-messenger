@@ -103,6 +103,22 @@ async function updateChatsList() {
         
         const chats = await response.json();
         console.log('🔄 Chats updated:', chats);
+        
+        // Обновляем время в списке чатов
+        document.querySelectorAll('.chat-item').forEach(item => {
+            const onclick = item.getAttribute('onclick');
+            if (onclick) {
+                const match = onclick.match(/openChat\((\d+)/);
+                if (match) {
+                    const userId = parseInt(match[1]);
+                    const chat = chats.find(c => c.contact_id === userId);
+                    const timeEl = item.querySelector('.chat-time');
+                    if (timeEl && chat?.last_timestamp) {
+                        timeEl.textContent = formatTime(chat.last_timestamp);  // ← ЗДЕСЬ
+                    }
+                }
+            }
+        });
     } catch (error) {
         console.error('Error updating chats:', error);
     }
