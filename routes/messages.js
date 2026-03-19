@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-module.exports = ({ getMessagesBetweenUsers, createMessage, markMessagesAsRead, getRecentChats, deleteMessagesBetweenUsers, db }) => {
+module.exports = ({ getMessagesBetweenUsers, createMessage, markMessagesAsRead, getRecentChats, deleteMessagesBetweenUsers }) => {
   
   // Получить историю сообщений с конкретным пользователем
   router.get('/history/:userId/:contactId', async (req, res) => {
@@ -50,8 +50,8 @@ module.exports = ({ getMessagesBetweenUsers, createMessage, markMessagesAsRead, 
     }
   });
 
-  // Очистить историю чата
-router.delete('/clear/:userId/:contactId', async (req, res) => {
+  // Очистить историю чата (удалить все сообщения с пользователем)
+  router.delete('/clear/:userId/:contactId', async (req, res) => {
     const { userId, contactId } = req.params;
     
     try {
@@ -66,10 +66,10 @@ router.delete('/clear/:userId/:contactId', async (req, res) => {
         console.error('❌ Ошибка очистки чата:', error);
         res.status(500).json({ error: 'Ошибка при очистке чата' });
     }
-});
+  });
 
-// Удалить чат полностью
-router.delete('/delete-chat/:userId/:contactId', async (req, res) => {
+  // Удалить чат полностью (то же самое, что и clear)
+  router.delete('/delete-chat/:userId/:contactId', async (req, res) => {
     const { userId, contactId } = req.params;
     
     try {
@@ -84,22 +84,16 @@ router.delete('/delete-chat/:userId/:contactId', async (req, res) => {
         console.error('❌ Ошибка удаления чата:', error);
         res.status(500).json({ error: 'Ошибка при удалении чата' });
     }
-});
+  });
 
-  // Сохранить бэкап всех сообщений
+  // Сохранить бэкап всех сообщений (нужна отдельная функция в database.js)
   router.get('/backup/:userId', async (req, res) => {
     const { userId } = req.params;
     
     try {
-      const messages = await getMessagesBetweenUsers(parseInt(userId), null);
-      
-      const backup = {
-        user: { id: userId },
-        messages: messages,
-        date: new Date().toISOString()
-      };
-      
-      res.json(backup);
+      // Пока заглушка - вернём все сообщения пользователя
+      // В реальности нужно создать функцию getAllUserMessages в database.js
+      res.status(501).json({ error: 'Функция в разработке' });
     } catch (error) {
       console.error('❌ Ошибка создания бэкапа:', error);
       res.status(500).json({ error: 'Ошибка создания бэкапа' });
@@ -116,13 +110,8 @@ router.delete('/delete-chat/:userId/:contactId', async (req, res) => {
     }
     
     try {
-      // Здесь нужно добавить функцию restoreMessages в database.js
       // Пока заглушка
-      res.json({ 
-        success: true, 
-        restored: messages.length,
-        message: `Восстановлено ${messages.length} сообщений`
-      });
+      res.status(501).json({ error: 'Функция в разработке' });
     } catch (error) {
       console.error('❌ Ошибка восстановления:', error);
       res.status(500).json({ error: 'Ошибка восстановления' });
