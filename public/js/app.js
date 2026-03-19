@@ -656,7 +656,7 @@ if (Notification.permission === 'default') {
     Notification.requestPermission();
 }
 
-let currentDeployId = localStorage.getItem('deploy_id') || null;
+currentDeployId = localStorage.getItem('deploy_id') || null;
 
 async function checkDeployStatus() {
     try {
