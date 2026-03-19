@@ -5,6 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
+const { Pool } = require('pg');
 const { 
     initializeDatabase, 
     findUserByPhone, 
@@ -19,16 +20,12 @@ const {
     deleteMessagesBetweenUsers
 } = require('./database');
 
-// В самом начале файла, после других переменных
+// Константы
 let SERVER_READY = false;
-let SERVER_START_TIME = Date.now();
-
-// После всех require, но до app creation
 const DEPLOY_ID = process.env.RAILWAY_DEPLOYMENT_ID || 
                   process.env.RENDER_DEPLOYMENT_ID || 
                   'dev-' + Date.now();
-
-const APP_START_TIME = Date.now();
+const SERVER_START_TIME = Date.now();
 
 const app = express();
 const server = http.createServer(app);
@@ -48,20 +45,27 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Создаем папку для временных файлов
+if (!fs.existsSync('./temp')) {
+  fs.mkdirSync('./temp', { recursive: true });
+  console.log('📁 Создана папка temp');
+}
+
+// Подключение к PostgreSQL
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
+
+// ========== API МАРШРУТЫ ==========
 app.get('/api/status', (req, res) => {
     res.json({
         deployId: DEPLOY_ID,
-        startTime: APP_START_TIME,
+        startTime: SERVER_START_TIME,
         uptime: process.uptime()
     });
-});
-
-// Обработка для клиентской части (SPA)
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api')) {
-    return next();
-  }
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.get('/api/health', (req, res) => {
@@ -80,38 +84,10 @@ app.get('/api/health', (req, res) => {
     }
 });
 
-// Создаем папки если их нет (только для временных файлов)
-if (!fs.existsSync('./temp')) {
-  fs.mkdirSync('./temp', { recursive: true });
-  console.log('📁 Создана папка temp');
-}
-
-// Подключение к PostgreSQL (нужно для прямых запросов)
-const { Pool } = require('pg');
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
-
-// Инициализация PostgreSQL
-console.log('🔄 Инициализация PostgreSQL...');
-initializeDatabase().then(() => {
-  console.log('✅ База данных PostgreSQL готова');
-  SERVER_READY = true;
-}).catch(err => {
-  console.error('❌ Ошибка инициализации БД:', err);
-  process.exit(1);
-});
-
-// Хранилище активных соединений (socket.id -> userId)
-const activeSockets = new Map();
-
-// НАСТРОЙКА ЗАГРУЗКИ ФАЙЛОВ (временное хранилище)
+// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФАЙЛОВ
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'temp/'); // Сохраняем в temp, потом в БД
+    cb(null, 'temp/');
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -146,24 +122,20 @@ const upload = multer({
   }
 });
 
-// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФАЙЛОВ (СОХРАНЕНИЕ В БД)
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Файл не загружен' });
   }
   
   try {
-    // Читаем файл как буфер
     const fileBuffer = fs.readFileSync(req.file.path);
     
-    // Сохраняем в БД
     const result = await pool.query(
       `INSERT INTO files (file_name, file_path, file_size, file_type, file_data, uploaded_at) 
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
       [req.file.originalname, `/api/files/${Date.now()}`, req.file.size, req.file.mimetype, fileBuffer, Date.now()]
     );
     
-    // Удаляем временный файл
     fs.unlinkSync(req.file.path);
     
     console.log(`✅ Файл сохранён в БД, ID: ${result.rows[0].id}`);
@@ -178,13 +150,11 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     });
   } catch (err) {
     console.error('❌ Ошибка сохранения файла:', err);
-    // Пытаемся удалить временный файл в случае ошибки
     try { fs.unlinkSync(req.file.path); } catch (e) {}
     res.status(500).json({ error: 'Ошибка сохранения файла' });
   }
 });
 
-// МАРШРУТ ДЛЯ ПОЛУЧЕНИЯ ФАЙЛА
 app.get('/api/files/:fileId', async (req, res) => {
   const { fileId } = req.params;
   
@@ -227,11 +197,33 @@ const messageRoutes = require('./routes/messages')({
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
 
-// WebSocket для реального времени
+// ========== ИНИЦИАЛИЗАЦИЯ ==========
+console.log('🔄 Инициализация PostgreSQL...');
+initializeDatabase().then(() => {
+  console.log('✅ База данных PostgreSQL готова');
+  SERVER_READY = true;
+}).catch(err => {
+  console.error('❌ Ошибка инициализации БД:', err);
+  process.exit(1);
+});
+
+// Хранилище активных соединений
+const activeSockets = new Map();
+
+// ========== ОБРАБОТКА КЛИЕНТСКОЙ ЧАСТИ ==========
+app.get('*', (req, res, next) => {
+  // Пропускаем API запросы
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  // Отдаём index.html для всех остальных
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ========== WEB SOCKET ==========
 io.on('connection', (socket) => {
   console.log('🔵 Клиент подключен:', socket.id);
   
-  // Присоединение к комнате пользователя
   socket.on('join', async (userId) => {
     socket.join(`user_${userId}`);
     activeSockets.set(socket.id, userId);
@@ -248,7 +240,6 @@ io.on('connection', (socket) => {
     }
   });
   
-  // Отправка сообщения
   socket.on('send_message', async (data) => {
     const { senderId, receiverId, message, type = 'text', fileId, fileName, fileSize, duration } = data;
     
@@ -267,17 +258,14 @@ io.on('connection', (socket) => {
       messageData.fileSize = fileSize;
       messageData.duration = duration;
       
-      // Получаем имя отправителя
       const user = await findUserById(senderId);
       if (user) {
         messageData.senderName = user.username;
       }
       
-      // Отправляем получателю
       io.to(`user_${receiverId}`).emit('new_message', messageData);
       console.log(`✅ Server: message sent to user_${receiverId}`);
       
-      // Подтверждение отправителю
       socket.emit('message_sent', messageData);
       
     } catch (err) {
@@ -286,7 +274,6 @@ io.on('connection', (socket) => {
     }
   });
   
-  // Уведомление о том, что чат был очищен
   socket.on('chat_cleared', (data) => {
     const { userId, contactId } = data;
     console.log(`🧹 Чат очищен: пользователь ${userId} очистил чат с ${contactId}`);
@@ -297,7 +284,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Уведомление о том, что чат был удален
   socket.on('chat_deleted', (data) => {
     const { userId, contactId } = data;
     console.log(`🗑️ Чат удален: пользователь ${userId} удалил чат с ${contactId}`);
@@ -308,7 +294,6 @@ io.on('connection', (socket) => {
     });
   });
   
-  // Статус "печатает..."
   socket.on('typing', (data) => {
     socket.to(`user_${data.receiverId}`).emit('user_typing', {
       userId: data.senderId,
@@ -316,7 +301,6 @@ io.on('connection', (socket) => {
     });
   });
   
-  // Отметка о прочтении
   socket.on('mark_read', async (data) => {
     const { messageId, userId, contactId } = data;
     
@@ -361,21 +345,7 @@ io.on('connection', (socket) => {
   });
 });
 
-// Получаем локальный IP для вывода
-const { networkInterfaces } = require('os');
-const nets = networkInterfaces();
-let localIP = '192.168.0.100';
-
-for (const name of Object.keys(nets)) {
-  for (const net of nets[name]) {
-    if (net.family === 'IPv4' && !net.internal) {
-      localIP = net.address;
-      break;
-    }
-  }
-}
-
-// Запуск сервера
+// ========== ЗАПУСК ==========
 const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
 
