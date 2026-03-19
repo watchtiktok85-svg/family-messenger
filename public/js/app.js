@@ -1,4 +1,4 @@
-// Глобальные насройки
+// Глобальные настройки
 let settings = {
     privacy: {
         phoneVisibility: localStorage.getItem('settings_phone_visibility') || 'all'
@@ -23,6 +23,7 @@ const app = document.getElementById('app');
 let currentTheme = localStorage.getItem('theme') || 'light';
 document.documentElement.setAttribute('data-theme', currentTheme);
 
+// Состояния сервера (ОСТАВЛЯЕМ ТОЛЬКО ОДИН РАЗ)
 const SERVER_STATES = {
     STARTING: 'starting',
     READY: 'ready',
@@ -33,6 +34,8 @@ let currentDeployId = localStorage.getItem('deploy_id') || null;
 let serverState = SERVER_STATES.READY;
 let reconnectAttempts = 0;
 let statusCheckInterval;
+
+// ... остальные функции ...
 
 function toggleTheme() {
     currentTheme = currentTheme === 'light' ? 'dark' : 'light';
@@ -708,8 +711,27 @@ window.addEventListener('beforeunload', () => {
         clearInterval(statusUpdateInterval);
     }
 });
+// ========== ЗАПУСК ПРОВЕРОК ==========
 
-document.addEventListener('DOMContentLoaded', init);
+// Единая функция для проверки при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    checkServerStatus();  // одна проверка
+});
 
-setInterval(checkServerStatus, 10000); // Каждые 10 секунд
-checkServerStatus();
+// Проверка каждые 10 секунд
+setInterval(checkServerStatus, 10000);
+
+// Удаляем дублирующиеся функции и переменные:
+// - Удали второе объявление currentDeployId
+// - Удали функцию checkDeployStatus (она дублирует checkServerStatus)
+// - Удали document.addEventListener('DOMContentLoaded', checkDeployStatus)
+
+window.addEventListener('beforeunload', () => {
+    if (currentUser && socket) {
+        navigator.sendBeacon(`${SERVER_URL}/api/auth/logout/${currentUser.id}`, '');
+    }
+    if (statusUpdateInterval) {
+        clearInterval(statusUpdateInterval);
+    }
+});
