@@ -11,6 +11,7 @@ const {
     findUserById, 
     createUser, 
     updateUserStatus, 
+    getUsers,
     getMessagesBetweenUsers, 
     createMessage, 
     markMessagesAsRead, 
