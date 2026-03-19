@@ -1,4 +1,4 @@
-// Глобальные настройки
+// Глобальные насройки
 let settings = {
     privacy: {
         phoneVisibility: localStorage.getItem('settings_phone_visibility') || 'all'
