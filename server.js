@@ -45,13 +45,22 @@ app.get('*', (req, res, next) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Создаем папки если их нет
-if (!fs.existsSync('./public/uploads')) {
-  fs.mkdirSync('./public/uploads', { recursive: true });
-  console.log('📁 Создана папка uploads');
+// Создаем папки если их нет (только для временных файлов)
+if (!fs.existsSync('./temp')) {
+  fs.mkdirSync('./temp', { recursive: true });
+  console.log('📁 Создана папка temp');
 }
 
-// Инициализация PostgreSQL (УДАЛЯЕМ sqlite3)
+// Подключение к PostgreSQL (нужно для прямых запросов)
+const { Pool } = require('pg');
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
+
+// Инициализация PostgreSQL
 console.log('🔄 Инициализация PostgreSQL...');
 initializeDatabase().then(() => {
   console.log('✅ База данных PostgreSQL готова');
@@ -63,10 +72,10 @@ initializeDatabase().then(() => {
 // Хранилище активных соединений (socket.id -> userId)
 const activeSockets = new Map();
 
-// НАСТРОЙКА ЗАГРУЗКИ ФАЙЛОВ
+// НАСТРОЙКА ЗАГРУЗКИ ФАЙЛОВ (временное хранилище)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'public/uploads/');
+    cb(null, 'temp/'); // Сохраняем в temp, потом в БД
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -101,38 +110,75 @@ const upload = multer({
   }
 });
 
-// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФАЙЛОВ (нужно переделать под PostgreSQL)
+// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФАЙЛОВ (СОХРАНЕНИЕ В БД)
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Файл не загружен' });
   }
   
-  const fileUrl = `/uploads/${req.file.filename}`;
-  
   try {
-    // В PostgreSQL нужно создать таблицу files и функцию для вставки
-    // Пока возвращаем успех без сохранения в БД
+    // Читаем файл как буфер
+    const fileBuffer = fs.readFileSync(req.file.path);
+    
+    // Сохраняем в БД
+    const result = await pool.query(
+      `INSERT INTO files (file_name, file_path, file_size, file_type, file_data, uploaded_at) 
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+      [req.file.originalname, `/api/files/${Date.now()}`, req.file.size, req.file.mimetype, fileBuffer, Date.now()]
+    );
+    
+    // Удаляем временный файл
+    fs.unlinkSync(req.file.path);
+    
+    console.log(`✅ Файл сохранён в БД, ID: ${result.rows[0].id}`);
+    
     res.json({
       success: true,
-      fileId: Date.now(), // временный ID
-      fileUrl: fileUrl,
+      fileId: result.rows[0].id,
+      fileUrl: `/api/files/${result.rows[0].id}`,
       fileName: req.file.originalname,
       fileSize: req.file.size,
       fileType: req.file.mimetype
     });
   } catch (err) {
     console.error('❌ Ошибка сохранения файла:', err);
+    // Пытаемся удалить временный файл в случае ошибки
+    try { fs.unlinkSync(req.file.path); } catch (e) {}
     res.status(500).json({ error: 'Ошибка сохранения файла' });
   }
 });
 
-// Подключаем маршруты (передаём функции, а не db)
+// МАРШРУТ ДЛЯ ПОЛУЧЕНИЯ ФАЙЛА
+app.get('/api/files/:fileId', async (req, res) => {
+  const { fileId } = req.params;
+  
+  try {
+    const result = await pool.query(
+      'SELECT file_name, file_type, file_data FROM files WHERE id = $1',
+      [fileId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Файл не найден' });
+    }
+    
+    const file = result.rows[0];
+    res.set('Content-Type', file.file_type);
+    res.set('Content-Disposition', `inline; filename="${file.file_name}"`);
+    res.send(file.file_data);
+  } catch (err) {
+    console.error('❌ Ошибка получения файла:', err);
+    res.status(500).json({ error: 'Ошибка получения файла' });
+  }
+});
+
+// Подключаем маршруты
 const authRoutes = require('./routes/auth')({ 
     findUserByPhone, 
     findUserById, 
     createUser, 
     updateUserStatus,
-    getUsers,
+    getUsers
 });
 const messageRoutes = require('./routes/messages')({ 
     getMessagesBetweenUsers, 
@@ -168,7 +214,7 @@ io.on('connection', (socket) => {
   
   // Отправка сообщения
   socket.on('send_message', async (data) => {
-    const { senderId, receiverId, message, type = 'text', fileId, fileName, fileSize } = data;
+    const { senderId, receiverId, message, type = 'text', fileId, fileName, fileSize, duration } = data;
     
     console.log(`📨 Server: sending message from ${senderId} to ${receiverId}`);
     
@@ -183,6 +229,7 @@ io.on('connection', (socket) => {
       
       messageData.fileName = fileName;
       messageData.fileSize = fileSize;
+      messageData.duration = duration;
       
       // Получаем имя отправителя
       const user = await findUserById(senderId);
@@ -309,7 +356,7 @@ server.listen(PORT, HOST, () => {
      http://${localIP}:${PORT}
   
   📁 База данных: PostgreSQL
-  📁 Загрузки: ./public/uploads
+  📁 Временные файлы: ./temp
   ⚡ WebSocket готов к работе
   `);
 });
