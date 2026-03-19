@@ -173,9 +173,11 @@ function renderMessage(msg) {
     
     if (msg.type === 'text') {
         content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
-    } else if (msg.type === 'image') {
+    } 
+    else if (msg.type === 'image') {
         content = `<img src="${msg.message}" class="message-media" onclick="openImageModal('${msg.message}')">`;
-    } else if (msg.type === 'audio') {  // ← ВОТ ЭТОТ БЛОК
+    } 
+    else if (msg.type === 'audio') {
         const duration = msg.duration || 0;
         const minutes = Math.floor(duration / 60);
         const seconds = Math.floor(duration % 60);
@@ -187,7 +189,8 @@ function renderMessage(msg) {
                 <div class="voice-duration">${durationText}</div>
             </div>
         `;
-    } else {
+    } 
+    else {
         content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
     }
     
@@ -212,29 +215,19 @@ function addMessageToChat(message) {
     
     if (document.querySelector(`[data-message-id="${message.id}"]`)) return;
     
-    const isSent = message.senderId === currentUser.id;
-    const time = new Date(parseInt(message.timestamp)).toLocaleTimeString([], { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-    });
+    // Создаем объект для renderMessage
+    const msgForRender = {
+        id: message.id,
+        sender_id: message.senderId,
+        receiver_id: message.receiverId,
+        message: message.message,
+        type: message.type || 'text',
+        timestamp: message.timestamp,
+        status: message.status || 'sent',
+        duration: message.duration
+    };
     
-    let content = '';
-    if (message.type === 'text') {
-        content = `<div class="message-content">${escapeHtml(message.message)}</div>`;
-    } else {
-        content = `<div class="message-content">[${message.type}]</div>`;
-    }
-    
-    const messageHtml = `
-        <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${message.id}">
-            ${content}
-            <div class="message-meta">
-                <span class="message-time">${time}</span>
-                ${isSent ? '<span class="message-status">✓</span>' : ''}
-            </div>
-        </div>
-    `;
-    
+    const messageHtml = renderMessage(msgForRender);
     container.insertAdjacentHTML('beforeend', messageHtml);
     scrollToBottom();
     
