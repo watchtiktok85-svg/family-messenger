@@ -137,8 +137,7 @@ const messageRoutes = require('./routes/messages')({
     getMessagesBetweenUsers, 
     createMessage, 
     markMessagesAsRead, 
-    getRecentChats, 
-    db: pool
+    getRecentChats
 });
 
 app.use('/api/auth', authRoutes);
