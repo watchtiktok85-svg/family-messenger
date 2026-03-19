@@ -186,11 +186,7 @@ function renderMessage(msg) {
     if (msg.type === 'text') {
         content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
     } else if (msg.type === 'image') {
-    const imageUrl = msg.message.startsWith('http') 
-        ? msg.message 
-        : (typeof SERVER_URL !== 'undefined' ? SERVER_URL : '') + msg.message;
-    
-    content = `<img src="${imageUrl}" class="message-media" onclick="openImageModal('${imageUrl}')">`;
+    content = `<img src="${msg.message}" class="message-media" onclick="openImageModal('${msg.message}')">`;
 } else if (msg.type === 'audio') {
         const duration = msg.duration || 0;
         const minutes = Math.floor(duration / 60);
