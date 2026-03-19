@@ -52,11 +52,18 @@ body {
 #app {
     width: 100%;
     max-width: 500px;
-    height: 100vh;
+    height: 100dvh; /* ← ИЗМЕНЕНО: используем динамическую высоту */
     background: var(--bg-secondary);
     display: flex;
     flex-direction: column;
     box-shadow: 0 0 20px var(--shadow);
+}
+
+/* Добавить поддержку для старых браузеров */
+@supports not (height: 100dvh) {
+    #app {
+        height: 100vh;
+    }
 }
 
 /* Экран загрузки */
@@ -659,7 +666,7 @@ audio {
 
 @media (max-width: 600px) {
     #app {
-        max-width: 100%;
+        max-width: 100dvh;
         height: 100dvh;
     }
     
