@@ -4,6 +4,10 @@ const socketIO = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const { Pool } = require('pg');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
 const { 
   initializeDatabase, 
   findUserByPhone, 
