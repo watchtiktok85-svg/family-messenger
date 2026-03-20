@@ -346,10 +346,25 @@ window.addVoiceButton = addVoiceButton;
 window.renderVoiceMessage = renderVoiceMessage;
 
 // Добавляем кнопку при открытии чата
-const originalOpenChat = window.openChat;
-window.openChat = function(...args) {
-  const result = originalOpenChat.apply(this, args);
-  setTimeout(addVoiceButton, 500);
-  setTimeout(addVoiceButton, 1000);
-  return result;
-};
+if (typeof window.openChat === 'function') {
+  const originalOpenChat = window.openChat;
+  window.openChat = function(...args) {
+    const result = originalOpenChat.apply(this, args);
+    setTimeout(addVoiceButton, 500);
+    setTimeout(addVoiceButton, 1000);
+    return result;
+  };
+} else {
+  // Если openChat ещё не определена, ждём
+  setTimeout(() => {
+    if (typeof window.openChat === 'function') {
+      const originalOpenChat = window.openChat;
+      window.openChat = function(...args) {
+        const result = originalOpenChat.apply(this, args);
+        setTimeout(addVoiceButton, 500);
+        setTimeout(addVoiceButton, 1000);
+        return result;
+      };
+    }
+  }, 1000);
+}
