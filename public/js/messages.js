@@ -181,24 +181,29 @@ function renderMessage(msg) {
     });
     
     let content = '';
-    
-    if (msg.type === 'text') {
-        content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
-    } else if (msg.type === 'image') {
-    content = `<img src="${msg.message}" class="message-media" onclick="openImageModal('${msg.message}')">`;
-} else if (msg.type === 'audio') {
-        const duration = msg.duration || 0;
-        const minutes = Math.floor(duration / 60);
-        const seconds = Math.floor(duration % 60);
-        const durationText = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds}с`;
-        
-        content = `
-            <div class="voice-message">
-                <audio src="${msg.message}" controls preload="metadata"></audio>
-                <div class="voice-duration">${durationText}</div>
-            </div>
-        `;
-    } 
+
+if (msg.type === 'text') {
+  content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
+} 
+else if (msg.type === 'audio') {
+  const duration = msg.duration || 0;
+  const minutes = Math.floor(duration / 60);
+  const seconds = Math.floor(duration % 60);
+  const durationText = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds}с`;
+  
+  content = `
+    <div class="voice-message">
+      <audio controls preload="metadata">
+        <source src="/api/voice/${msg.id}" type="audio/webm">
+        Ваш браузер не поддерживает аудио
+      </audio>
+      <div class="voice-duration">${durationText}</div>
+    </div>
+  `;
+} 
+else {
+  content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
+}
     
     // 👇 ВОТ СЮДА НУЖНО ДОБАВИТЬ ОБРАБОТКУ FILE
     else if (msg.type === 'file') {
