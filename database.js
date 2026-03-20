@@ -49,8 +49,15 @@ async function initializeDatabase() {
     }
 }
 
-// Функция создания таблиц
 async function createTables() {
+  // Удаляем старую таблицу files (если есть)
+  try {
+    await pool.query(`DROP TABLE IF EXISTS files CASCADE`);
+    console.log('🗑️ Таблица files удалена');
+  } catch (err) {
+    console.log('⚠️ Таблица files не существовала или ошибка:', err.message);
+  }
+    
     // Таблица пользователей
     await pool.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -348,38 +355,6 @@ async function updateUsername(userId, newUsername) {
     return result.rows[0];
 }
 
-// Сохранить файл в БД
-async function saveFile(fileData) {
-  const result = await pool.query(
-    `INSERT INTO files (file_name, file_path, file_size, file_type, file_data, uploaded_at) 
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-    [fileData.fileName, `/api/files/temp`, fileData.fileSize, fileData.fileType, fileData.fileBuffer, Date.now()]
-  );
-  return result.rows[0].id;
-}
-
-// Получить файл из БД
-async function getFile(fileId) {
-  const result = await pool.query(
-    'SELECT file_name, file_type, file_data FROM files WHERE id = $1',
-    [fileId]
-  );
-  return result.rows[0];
-}
-
-// Привязать файл к сообщению (опционально, для связи)
-async function linkFileToMessage(fileId, messageId) {
-  await pool.query(
-    'UPDATE files SET message_id = $1, file_path = $2 WHERE id = $3',
-    [messageId, `/api/files/${fileId}`, fileId]
-  );
-}
-
-// Удалить файл (опционально)
-async function deleteFile(fileId) {
-  await pool.query('DELETE FROM files WHERE id = $1', [fileId]);
-}
-
 module.exports = {
     initializeDatabase,
     findUserByPhone,
@@ -393,9 +368,5 @@ module.exports = {
     getRecentChats,
     deleteMessagesBetweenUsers,  
     updateUsername,             
-    cleanupOldMessages,
-    saveFile,           // ← НОВОЕ
-    getFile,            // ← НОВОЕ
-    deleteFile,         // ← НОВОЕ
-    linkFileToMessage   // ← НОВОЕ
+    cleanupOldMessages
 };
