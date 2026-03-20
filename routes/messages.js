@@ -19,19 +19,19 @@ module.exports = ({ getMessagesBetweenUsers, createMessage, markMessagesAsRead, 
   });
 
   // Получить последние сообщения для всех чатов
-  router.get('/recent/:userId', async (req, res) => {
-    const { userId } = req.params;
-    
-    console.log(`📋 Getting recent chats for user ${userId}`);
-    
-    try {
-      const chats = await getRecentChats(parseInt(userId));
-      res.json(chats);
-    } catch (error) {
-      console.error('❌ Error getting recent chats:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
+router.get('/recent/:userId', async (req, res) => {
+  const { userId } = req.params;
+  
+  console.log(`📋 Getting recent chats for user ${userId}`);
+  
+  try {
+    const chats = await getRecentChats(parseInt(userId));
+    res.json(chats);
+  } catch (error) {
+    console.error('❌ Error getting recent chats:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
   // Отметить сообщения как прочитанные
   router.post('/read', async (req, res) => {
