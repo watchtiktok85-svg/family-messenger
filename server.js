@@ -125,56 +125,58 @@ const upload = multer({
   }
 });
 
+// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФАЙЛОВ (единый, через БД)
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Файл не загружен' });
   }
-  
+
   try {
+    // Читаем файл
     const fileBuffer = fs.readFileSync(req.file.path);
     
-    const result = await pool.query(
-      `INSERT INTO files (file_name, file_path, file_size, file_type, file_data, uploaded_at) 
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-      [req.file.originalname, `/api/files/${Date.now()}`, req.file.size, req.file.mimetype, fileBuffer, Date.now()]
-    );
+    // Сохраняем в БД через новую функцию
+    const fileId = await saveFile({
+      fileName: req.file.originalname,
+      fileSize: req.file.size,
+      fileType: req.file.mimetype,
+      fileBuffer: fileBuffer
+    });
     
+    // Удаляем временный файл
     fs.unlinkSync(req.file.path);
     
-    console.log(`✅ Файл сохранён в БД, ID: ${result.rows[0].id}`);
+    console.log(`✅ Файл сохранён в БД, ID: ${fileId}`);
     
     res.json({
       success: true,
-      fileId: result.rows[0].id,
-      fileUrl: `/api/files/${result.rows[0].id}`,
+      fileId: fileId,
+      fileUrl: `/api/files/${fileId}`,
       fileName: req.file.originalname,
       fileSize: req.file.size,
       fileType: req.file.mimetype
     });
+    
   } catch (err) {
     console.error('❌ Ошибка сохранения файла:', err);
+    // Пытаемся удалить временный файл
     try { fs.unlinkSync(req.file.path); } catch (e) {}
-    res.status(500).json({ error: 'Ошибка сохранения файла' });
+    res.status(500).json({ error: 'Ошибка сохранения файла: ' + err.message });
   }
 });
 
-// МАРШРУТ ДЛЯ ПОЛУЧЕНИЯ ФАЙЛА (ИСПРАВЛЕННЫЙ)
+// МАРШРУТ ДЛЯ ПОЛУЧЕНИЯ ФАЙЛА
 app.get('/api/files/:fileId', async (req, res) => {
   const { fileId } = req.params;
   
   try {
-    const result = await pool.query(
-      'SELECT file_name, file_type, file_data, file_size FROM files WHERE id = $1',
-      [fileId]
-    );
+    const file = await getFile(parseInt(fileId));
     
-    if (result.rows.length === 0) {
+    if (!file) {
       return res.status(404).json({ error: 'Файл не найден' });
     }
     
-    const file = result.rows[0];
-    
-    // Проверяем, есть ли данные
+    // Проверяем, что данные есть
     if (!file.file_data) {
       console.error('❌ Файл в БД не содержит данных, ID:', fileId);
       return res.status(500).json({ error: 'Файл поврежден' });
@@ -182,7 +184,7 @@ app.get('/api/files/:fileId', async (req, res) => {
     
     res.set('Content-Type', file.file_type);
     res.set('Content-Disposition', `inline; filename="${file.file_name}"`);
-    res.set('Content-Length', file.file_size);
+    res.set('Content-Length', file.file_data.length);
     res.send(file.file_data);
     
   } catch (err) {
@@ -215,6 +217,35 @@ console.log('🔄 Инициализация PostgreSQL...');
 initializeDatabase().then(() => {
   console.log('✅ База данных PostgreSQL готова');
   SERVER_READY = true;
+
+  // 👇 ВОТ СЮДА ВСТАВЛЯЙ 👇
+  // Очищаем временную папку при запуске
+  setTimeout(() => {
+    if (fs.existsSync('./temp')) {
+      fs.readdir('./temp', (err, files) => {
+        if (err) {
+          console.error('Ошибка чтения папки temp:', err);
+          return;
+        }
+        if (files.length === 0) return;
+        
+        let deleted = 0;
+        files.forEach(file => {
+          fs.unlink(`./temp/${file}`, (err) => {
+            if (!err) deleted++;
+          });
+        });
+        
+        setTimeout(() => {
+          if (deleted > 0) {
+            console.log(`🧹 Очищено ${deleted} временных файлов из папки temp`);
+          }
+        }, 500);
+      });
+    }
+  }, 3000);
+  // 👆 ДО СЮДА 👆
+    
 }).catch(err => {
   console.error('❌ Ошибка инициализации БД:', err);
   process.exit(1);
@@ -254,38 +285,44 @@ io.on('connection', (socket) => {
   });
   
   socket.on('send_message', async (data) => {
-    const { senderId, receiverId, message, type = 'text', fileId, fileName, fileSize, duration } = data;
+  const { senderId, receiverId, message, type = 'text', fileId, fileName, fileSize, duration } = data;
+  
+  console.log(`📨 Server: sending message from ${senderId} to ${receiverId}`);
+  
+  try {
+    const messageData = await createMessage({
+      senderId,
+      receiverId,
+      message,
+      type,
+      fileId
+    });
     
-    console.log(`📨 Server: sending message from ${senderId} to ${receiverId}`);
-    
-    try {
-      const messageData = await createMessage({
-        senderId,
-        receiverId,
-        message,
-        type,
-        fileId
-      });
-      
-      messageData.fileName = fileName;
-      messageData.fileSize = fileSize;
-      messageData.duration = duration;
-      
-      const user = await findUserById(senderId);
-      if (user) {
-        messageData.senderName = user.username;
-      }
-      
-      io.to(`user_${receiverId}`).emit('new_message', messageData);
-      console.log(`✅ Server: message sent to user_${receiverId}`);
-      
-      socket.emit('message_sent', messageData);
-      
-    } catch (err) {
-      console.error('❌ Ошибка сохранения сообщения:', err);
-      socket.emit('error', { message: 'Не удалось отправить сообщение' });
+    // 👇 ВОТ СЮДА ВСТАВЛЯЙ 👇
+    // Если есть файл, привязываем его к сообщению
+    if (fileId) {
+      await linkFileToMessage(fileId, messageData.id);
+      console.log(`🔗 Файл ${fileId} привязан к сообщению ${messageData.id}`);
     }
-  });
+    // 👆 ДО СЮДА 
+      
+    messageData.fileName = fileName;
+    messageData.fileSize = fileSize;
+    messageData.duration = duration;
+    
+    const user = await findUserById(senderId);
+    if (user) {
+      messageData.senderName = user.username;
+    }
+    
+    io.to(`user_${receiverId}`).emit('new_message', messageData);
+    socket.emit('message_sent', messageData);
+    
+  } catch (err) {
+    console.error('❌ Ошибка сохранения сообщения:', err);
+    socket.emit('error', { message: 'Не удалось отправить сообщение' });
+  }
+});
   
   socket.on('chat_cleared', (data) => {
     const { userId, contactId } = data;
