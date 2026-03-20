@@ -19,8 +19,7 @@ const {
   createMessage, 
   markMessagesAsRead, 
   getRecentChats,
-  deleteMessagesBetweenUsers,
-  getVoiceMessage
+  deleteMessagesBetweenUsers
 } = require('./database');
 
 // Константы
