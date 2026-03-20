@@ -162,78 +162,54 @@ document.addEventListener('click', function(event) {
 });
 
 function renderMessage(msg) {
-    const isSent = msg.sender_id === currentUser.id;
-    
-    // Безопасное преобразование timestamp
-    let timestamp = msg.timestamp;
-    if (typeof timestamp === 'string') {
-        timestamp = parseInt(timestamp);
-    }
-    
-    // Проверяем формат
-    if (timestamp < 1000000000000) {
-        timestamp = timestamp * 1000; // конвертируем секунды в миллисекунды
-    }
-    
-    const time = new Date(timestamp).toLocaleTimeString([], { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-    });
-    
-    let content = '';
-
-if (msg.type === 'text') {
-  content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
-} 
-else if (msg.type === 'audio') {
-  const duration = msg.duration || 0;
-  const minutes = Math.floor(duration / 60);
-  const seconds = Math.floor(duration % 60);
-  const durationText = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds}с`;
+  const isSent = msg.sender_id === currentUser.id;
   
-  content = `
-    <div class="voice-message">
-      <audio controls preload="metadata">
-        <source src="/api/voice/${msg.id}" type="audio/webm">
-        Ваш браузер не поддерживает аудио
-      </audio>
-      <div class="voice-duration">${durationText}</div>
+  let timestamp = msg.timestamp;
+  if (typeof timestamp === 'string') {
+    timestamp = parseInt(timestamp);
+  }
+  
+  const time = new Date(timestamp).toLocaleTimeString([], { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+  
+  let content = '';
+  
+  if (msg.type === 'text') {
+    content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
+  } 
+  else if (msg.type === 'audio') {
+    const duration = msg.duration || 0;
+    const minutes = Math.floor(duration / 60);
+    const seconds = Math.floor(duration % 60);
+    const durationText = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds}с`;
+    
+    content = `
+      <div class="voice-message">
+        <audio controls preload="metadata">
+          <source src="/api/voice/${msg.id}" type="audio/webm">
+          Ваш браузер не поддерживает аудио
+        </audio>
+        <div class="voice-duration">${durationText}</div>
+      </div>
+    `;
+  } 
+  else {
+    content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
+  }
+  
+  const status = msg.status === 'read' ? '✓✓' : (msg.status === 'sent' ? '✓' : '');
+  
+  return `
+    <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}">
+      ${content}
+      <div class="message-meta">
+        <span class="message-time">${time}</span>
+        ${isSent ? `<span class="message-status">${status}</span>` : ''}
+      </div>
     </div>
   `;
-} 
-else {
-  content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
-}
-    
-    // 👇 ВОТ СЮДА НУЖНО ДОБАВИТЬ ОБРАБОТКУ FILE
-    else if (msg.type === 'file') {
-        const fileName = msg.fileName || 'Файл';
-        const fileSize = msg.fileSize || 0;
-        const fileIcon = getFileIcon(fileName);
-        
-        content = `
-            <div class="file-message" onclick="downloadFile('${msg.message}')">
-                <span>${fileIcon} ${fileName}</span>
-                <small>${formatFileSize(fileSize)}</small>
-            </div>
-        `;
-    }
-        
-    else {
-        content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
-    }
-    
-    const status = msg.status === 'read' ? '✓✓' : (msg.status === 'sent' ? '✓' : '');
-    
-    return `
-        <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}">
-            ${content}
-            <div class="message-meta">
-                <span class="message-time">${time}</span>
-                ${isSent ? `<span class="message-status">${status}</span>` : ''}
-            </div>
-        </div>
-    `;
 }
 
 function addMessageToChat(message) {
