@@ -89,6 +89,27 @@ const messageRoutes = require('./routes/messages')({
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
 
+// ========== МАРШРУТ ДЛЯ ПОЛУЧЕНИЯ ГОЛОСОВЫХ СООБЩЕНИЙ ==========
+app.get('/api/voice/:messageId', async (req, res) => {
+  const { messageId } = req.params;
+  
+  try {
+    const voice = await getVoiceMessage(parseInt(messageId));
+    
+    if (!voice) {
+      return res.status(404).json({ error: 'Голосовое сообщение не найдено' });
+    }
+    
+    res.set('Content-Type', 'audio/webm');
+    res.set('Content-Length', voice.audio_data.length);
+    res.send(voice.audio_data);
+    
+  } catch (err) {
+    console.error('❌ Ошибка получения голосового:', err);
+    res.status(500).json({ error: 'Ошибка получения голосового' });
+  }
+});
+
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 console.log('🔄 Инициализация PostgreSQL...');
 initializeDatabase().then(() => {
