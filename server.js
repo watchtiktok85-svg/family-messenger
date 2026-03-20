@@ -15,7 +15,8 @@ const {
   createMessage, 
   markMessagesAsRead, 
   getRecentChats,
-  deleteMessagesBetweenUsers
+  deleteMessagesBetweenUsers,
+  getVoiceMessage
 } = require('./database');
 
 // Константы
@@ -130,33 +131,35 @@ io.on('connection', (socket) => {
   });
 
   socket.on('send_message', async (data) => {
-    const { senderId, receiverId, message, type = 'text' } = data;
+  const { senderId, receiverId, message, type = 'text', audioData, duration } = data;
 
-    console.log(`📨 Server: sending message from ${senderId} to ${receiverId}`);
+  console.log(`📨 Server: sending ${type} from ${senderId} to ${receiverId}`);
 
-    try {
-      const messageData = await createMessage({
-        senderId,
-        receiverId,
-        message,
-        type
-      });
+  try {
+    const messageData = await createMessage({
+      senderId,
+      receiverId,
+      message: message || '',
+      type,
+      audioData: audioData ? Buffer.from(audioData) : null,
+      duration: duration || 0
+    });
 
-      const user = await findUserById(senderId);
-      if (user) {
-        messageData.senderName = user.username;
-      }
-
-      io.to(`user_${receiverId}`).emit('new_message', messageData);
-      console.log(`✅ Server: message sent to user_${receiverId}`);
-
-      socket.emit('message_sent', messageData);
-
-    } catch (err) {
-      console.error('❌ Ошибка сохранения сообщения:', err);
-      socket.emit('error', { message: 'Не удалось отправить сообщение' });
+    const user = await findUserById(senderId);
+    if (user) {
+      messageData.senderName = user.username;
     }
-  });
+
+    io.to(`user_${receiverId}`).emit('new_message', messageData);
+    console.log(`✅ Server: message sent to user_${receiverId}`);
+
+    socket.emit('message_sent', messageData);
+
+  } catch (err) {
+    console.error('❌ Ошибка сохранения сообщения:', err);
+    socket.emit('error', { message: 'Не удалось отправить сообщение' });
+  }
+});
 
   socket.on('chat_cleared', (data) => {
     const { userId, contactId } = data;
