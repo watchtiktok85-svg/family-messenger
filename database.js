@@ -393,5 +393,9 @@ module.exports = {
     getRecentChats,
     deleteMessagesBetweenUsers,  
     updateUsername,             
-    cleanupOldMessages
+    cleanupOldMessages,
+    saveFile,           // ← НОВОЕ
+    getFile,            // ← НОВОЕ
+    deleteFile,         // ← НОВОЕ
+    linkFileToMessage   // ← НОВОЕ
 };
