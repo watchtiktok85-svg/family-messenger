@@ -195,28 +195,68 @@ async function markMessagesAsRead(userId, contactId) {
   );
 }
 
+// Получить список последних чатов (упрощённая версия)
 async function getRecentChats(userId) {
-  const result = await pool.query(
-    `SELECT 
-       DISTINCT 
-       CASE 
-         WHEN sender_id = $1 THEN receiver_id 
-         ELSE sender_id 
-       END as contact_id,
-       (SELECT username FROM users WHERE id = contact_id) as contact_name,
-       (SELECT message FROM messages WHERE 
-          (sender_id = $1 AND receiver_id = contact_id) OR 
-          (sender_id = contact_id AND receiver_id = $1) 
-        ORDER BY timestamp DESC LIMIT 1) as last_message,
-       (SELECT timestamp FROM messages WHERE 
-          (sender_id = $1 AND receiver_id = contact_id) OR 
-          (sender_id = contact_id AND receiver_id = $1) 
-        ORDER BY timestamp DESC LIMIT 1) as last_timestamp
-     FROM messages 
-     WHERE sender_id = $1 OR receiver_id = $1`,
-    [userId]
-  );
-  return result.rows;
+  try {
+    // Сначала получаем все уникальные контакты, с которыми есть сообщения
+    const contacts = await pool.query(
+      `SELECT DISTINCT 
+         CASE 
+           WHEN sender_id = $1 THEN receiver_id 
+           ELSE sender_id 
+         END as contact_id
+       FROM messages 
+       WHERE sender_id = $1 OR receiver_id = $1`,
+      [userId]
+    );
+    
+    if (contacts.rows.length === 0) {
+      return [];
+    }
+    
+    const results = [];
+    
+    // Для каждого контакта получаем последнее сообщение
+    for (const contact of contacts.rows) {
+      const contactId = contact.contact_id;
+      
+      // Получаем последнее сообщение
+      const lastMsg = await pool.query(
+        `SELECT message, timestamp, status, type 
+         FROM messages 
+         WHERE (sender_id = $1 AND receiver_id = $2) 
+            OR (sender_id = $2 AND receiver_id = $1) 
+         ORDER BY timestamp DESC 
+         LIMIT 1`,
+        [userId, contactId]
+      );
+      
+      // Получаем информацию о пользователе
+      const userInfo = await pool.query(
+        `SELECT username, status FROM users WHERE id = $1`,
+        [contactId]
+      );
+      
+      results.push({
+        contact_id: contactId,
+        contact_name: userInfo.rows[0]?.username || 'Пользователь',
+        contact_status: userInfo.rows[0]?.status || 'offline',
+        last_message: lastMsg.rows[0]?.message || '',
+        last_timestamp: lastMsg.rows[0]?.timestamp || null,
+        last_status: lastMsg.rows[0]?.status || '',
+        last_type: lastMsg.rows[0]?.type || 'text'
+      });
+    }
+    
+    // Сортируем по времени (сначала новые)
+    results.sort((a, b) => (b.last_timestamp || 0) - (a.last_timestamp || 0));
+    
+    return results;
+    
+  } catch (error) {
+    console.error('❌ Ошибка в getRecentChats:', error);
+    return [];
+  }
 }
 
 async function deleteMessagesBetweenUsers(userId1, userId2) {
