@@ -17,7 +17,10 @@ const {
     createMessage, 
     markMessagesAsRead, 
     getRecentChats,
-    deleteMessagesBetweenUsers
+    deleteMessagesBetweenUsers,
+    saveFile,        // ← ДОБАВИТЬ
+    getFile,         // ← ДОБАВИТЬ
+    linkFileToMessage // ← ДОБАВИТЬ (опционально)
 } = require('./database');
 
 // Константы
