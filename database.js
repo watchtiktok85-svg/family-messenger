@@ -208,7 +208,7 @@ async function createMessage(messageData) {
     await saveVoiceMessage(messageId, messageData.audioData, messageData.duration || 0);
   }
   
-  return { id: result.rows[0].id, ...messageData, timestamp: timestamp };
+  return { id: result.rows[0].id, ...messageData, timestamp: timestamp, audioUrl: messageData.type === 'audio' ? `/api/voice/${messageId}` : null };
 }
 
 async function markMessagesAsRead(userId, contactId) {
