@@ -413,6 +413,15 @@ socket.on('new_message', (message) => {
       });
     }
   } else {
+    // ========== ДОБАВЛЯЕМ АВТОСОХРАНЕНИЕ ДЛЯ ФОТО ==========
+        // Если это фото и отправитель не текущий пользователь
+        if (message.type === 'image' && message.senderId !== currentUser.id) {
+            console.log('📸 Получено фото вне чата, проверяем автосохранение...');
+            if (typeof window.autoSavePhotoIfNeeded === 'function') {
+                window.autoSavePhotoIfNeeded(message.message);
+            }
+        }
+      
     // Если мы не в чате - обновляем список чатов
     console.log('📨 New message from ' + (message.senderName || 'пользователя'));
     
