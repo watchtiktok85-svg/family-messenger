@@ -1,4 +1,4 @@
-// Настройки приложения - ИСПОЛЬЗУЕМ ДРУГОЕ ИМЯ!
+// Настройки приложения
 let appSettings = {
     notifications: {
         sound: localStorage.getItem('settings_notification_sound') !== 'false'
@@ -64,24 +64,24 @@ function showSettings() {
                 </div>
 
                 <!-- Медиа -->
-<div class="settings-section">
-    <h3>Медиа</h3>
-    <div class="settings-item">
-        <span>Сохранять фото в галерею</span>
-        <label class="switch">
-            <input type="checkbox" ${appSettings.media.saveToGallery ? 'checked' : ''} onchange="toggleSaveToGallery()">
-            <span class="slider"></span>
-        </label>
-    </div>
-    <div class="settings-item">
-        <span>Качество фото</span>
-        <select onchange="setPhotoQuality(this.value)">
-            <option value="good" ${appSettings.media.photoQuality === 'good' ? 'selected' : ''}>Хорошее</option>
-            <option value="original" ${appSettings.media.photoQuality === 'original' ? 'selected' : ''}>Оригинал</option>
-        </select>
-    </div>
-</div>
-                
+                <div class="settings-section">
+                    <h3>Медиа</h3>
+                    <div class="settings-item">
+                        <span>Сохранять в галерею</span>
+                        <label class="switch">
+                            <input type="checkbox" ${appSettings.media.saveToGallery ? 'checked' : ''} onchange="toggleSaveToGallery()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="settings-item">
+                        <span>Качество фото</span>
+                        <select onchange="setPhotoQuality(this.value)">
+                            <option value="good" ${appSettings.media.photoQuality === 'good' ? 'selected' : ''}>Хорошее</option>
+                            <option value="original" ${appSettings.media.photoQuality === 'original' ? 'selected' : ''}>Оригинал</option>
+                        </select>
+                    </div>
+                </div>
+
                 <!-- Оформление -->
                 <div class="settings-section">
                     <h3>Оформление</h3>
@@ -116,6 +116,16 @@ function toggleNotificationSound() {
     saveSettings();
 }
 
+function toggleSaveToGallery() {
+    appSettings.media.saveToGallery = !appSettings.media.saveToGallery;
+    saveSettings();
+}
+
+function setPhotoQuality(value) {
+    appSettings.media.photoQuality = value;
+    saveSettings();
+}
+
 function setFontSize(value) {
     appSettings.appearance.fontSize = value;
     applySettings();
@@ -128,16 +138,6 @@ function setAccentColor(value) {
     showSettings();
 }
 
-function toggleSaveToGallery() {
-    appSettings.media.saveToGallery = !appSettings.media.saveToGallery;
-    saveSettings();
-}
-
-function setPhotoQuality(value) {
-    appSettings.media.photoQuality = value;
-    saveSettings();
-}
-
 // Применяем настройки
 applySettings();
 
@@ -148,5 +148,3 @@ window.toggleSaveToGallery = toggleSaveToGallery;
 window.setPhotoQuality = setPhotoQuality;
 window.setFontSize = setFontSize;
 window.setAccentColor = setAccentColor;
-window.toggleSaveToGallery = toggleSaveToGallery;
-window.setPhotoQuality = setPhotoQuality;
