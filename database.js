@@ -184,10 +184,7 @@ async function createMessage(messageData) {
     [messageData.senderId, messageData.receiverId, messageData.message, 
      messageData.type || 'text', timestamp, 'sent']
   );
-  
-  const messageId = result.rows[0].id;
-  
-  return { id: result.rows[0].id, ...messageData, timestamp: timestamp, audioUrl: messageData.type === 'audio' ? `/api/voice/${messageId}` : null };
+  return { id: result.rows[0].id, ...messageData, timestamp: timestamp };
 }
 
 async function markMessagesAsRead(userId, contactId) {
@@ -198,10 +195,8 @@ async function markMessagesAsRead(userId, contactId) {
   );
 }
 
-// Получить список последних чатов (упрощённая версия)
 async function getRecentChats(userId) {
   try {
-    // Сначала получаем все уникальные контакты, с которыми есть сообщения
     const contacts = await pool.query(
       `SELECT DISTINCT 
          CASE 
@@ -219,11 +214,9 @@ async function getRecentChats(userId) {
     
     const results = [];
     
-    // Для каждого контакта получаем последнее сообщение
     for (const contact of contacts.rows) {
       const contactId = contact.contact_id;
       
-      // Получаем последнее сообщение
       const lastMsg = await pool.query(
         `SELECT message, timestamp, status, type 
          FROM messages 
@@ -234,7 +227,6 @@ async function getRecentChats(userId) {
         [userId, contactId]
       );
       
-      // Получаем информацию о пользователе
       const userInfo = await pool.query(
         `SELECT username, status FROM users WHERE id = $1`,
         [contactId]
@@ -251,9 +243,7 @@ async function getRecentChats(userId) {
       });
     }
     
-    // Сортируем по времени (сначала новые)
     results.sort((a, b) => (b.last_timestamp || 0) - (a.last_timestamp || 0));
-    
     return results;
     
   } catch (error) {
