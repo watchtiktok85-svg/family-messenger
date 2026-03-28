@@ -656,8 +656,6 @@ if (Notification.permission === 'default') {
     Notification.requestPermission();
 }
 
-currentDeployId = localStorage.getItem('deploy_id') || null;
-
 async function checkDeployStatus() {
     try {
         const response = await fetch(`${SERVER_URL}/api/status`);
