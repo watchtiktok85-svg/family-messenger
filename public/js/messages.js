@@ -559,14 +559,27 @@ function downloadPhoto(imageUrl) {
 // Сохранить фото в галерею (загрузка)
 async function savePhotoToGallery(imageUrl) {
     try {
+        console.log('💾 Сохраняем фото:', imageUrl);
+        
         const response = await fetch(imageUrl);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const blob = await response.blob();
         
         // Создаём ссылку для скачивания
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = imageUrl.split('/').pop() + '.jpg';
+        
+        // Извлекаем имя файла из URL
+        let fileName = imageUrl.split('/').pop();
+        if (!fileName.includes('.')) {
+            fileName = fileName + '.jpg';
+        }
+        a.download = fileName;
+        
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -574,6 +587,7 @@ async function savePhotoToGallery(imageUrl) {
         
         console.log('✅ Фото сохранено');
         return true;
+        
     } catch (error) {
         console.error('❌ Ошибка сохранения фото:', error);
         return false;
@@ -587,7 +601,23 @@ async function autoSavePhotoIfNeeded(imageUrl) {
     
     if (saveToGallery) {
         console.log('📸 Автосохранение фото включено, сохраняем...');
-        await savePhotoToGallery(imageUrl);
+        
+        // Проверяем, не сохраняли ли уже это фото
+        const savedPhotos = JSON.parse(localStorage.getItem('saved_photos') || '[]');
+        if (savedPhotos.includes(imageUrl)) {
+            console.log('⏭️ Фото уже сохранялось ранее');
+            return;
+        }
+        
+        const success = await savePhotoToGallery(imageUrl);
+        if (success) {
+            // Запоминаем, что фото уже сохранили
+            savedPhotos.push(imageUrl);
+            localStorage.setItem('saved_photos', JSON.stringify(savedPhotos.slice(-100))); // храним последние 100
+            console.log('✅ Фото автоматически сохранено в галерею');
+        }
+    } else {
+        console.log('📸 Автосохранение фото выключено');
     }
 }
 
