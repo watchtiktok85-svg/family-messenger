@@ -240,12 +240,10 @@ async function searchUser() {
 
 function navigateToSettings() {
     closeDrawer();
-    console.log('Opening settings...');
     if (typeof window.showSettings === 'function') {
         window.showSettings();
     } else {
-        console.error('showSettings not found, available globals:', Object.keys(window).filter(k => k.includes('show')));
-        alert('Ошибка загрузки настроек. Функция showSettings не найдена.');
+        alert('Ошибка загрузки настроек');
     }
 }
 
