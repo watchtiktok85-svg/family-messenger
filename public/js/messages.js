@@ -61,13 +61,14 @@ async function openChat(userId, username) {
                 </div>
                 
                 <div class="message-input-container">
-    <button class="photo-btn" onclick="selectPhoto()">📷</button>
-    <input type="text" class="message-input" id="message-input" 
-           placeholder="Сообщение" 
-           onkeyup="handleTyping(event)" 
-           onkeypress="if(event.key==='Enter') sendMessage()">
-    <button class="send-btn" onclick="sendMessage()">➤</button>
-</div>
+                    <button class="photo-btn" onclick="selectPhoto()">📷</button>
+                    <input type="text" class="message-input" id="message-input" 
+                           placeholder="Сообщение" 
+                           onkeyup="handleTyping(event)" 
+                           onkeypress="if(event.key==='Enter') sendMessage()">
+                    <button class="send-btn" onclick="sendMessage()">➤</button>
+                </div>
+            </div>
         `;
 
         markMessagesAsRead(userId);
@@ -217,7 +218,8 @@ function addMessageToChat(message) {
         message: message.message,
         type: message.type || 'text',
         timestamp: message.timestamp,
-        status: message.status || 'sent'
+        status: message.status || 'sent',
+        duration: message.duration
     };
     
     const messageHtml = renderMessage(msgForRender);
@@ -290,14 +292,6 @@ async function markMessagesAsRead(contactId) {
                 contactId: contactId 
             })
         });
-        
-        // 👇 ЭТО УЖЕ ДОЛЖНО БЫТЬ
-        socket.emit('mark_read', {
-            messageId: null,  // можно null, сервер обновит все
-            userId: currentUser.id,
-            contactId: contactId
-        });
-        
     } catch (error) {
         console.error('Error marking messages as read:', error);
     }
@@ -332,7 +326,6 @@ async function showMiniProfile(userId, username) {
             if (e.target === modal) modal.remove();
         };
         
-        // Всегда показываем номер (убираем скрытие)
         modal.innerHTML = `
             <div class="profile-modal-content">
                 <button class="profile-modal-close" onclick="this.closest('.profile-modal').remove()">✕</button>
@@ -365,6 +358,8 @@ async function showMiniProfile(userId, username) {
     }
 }
 
+// ========== ФУНКЦИИ ДЛЯ ФОТО ==========
+
 // Выбор фото
 function selectPhoto() {
     const input = document.createElement('input');
@@ -383,10 +378,7 @@ function selectPhoto() {
 async function sendPhoto(file) {
     const formData = new FormData();
     formData.append('photo', file);
-    formData.append('senderId', currentUser.id);
-    formData.append('receiverId', currentChat.id);
     
-    // Показываем индикатор загрузки
     const progressBar = document.getElementById('uploadProgress');
     const progressFill = document.getElementById('progressFill');
     if (progressBar) progressBar.style.display = 'block';
@@ -403,7 +395,6 @@ async function sendPhoto(file) {
         if (progressFill) progressFill.style.width = '0%';
         
         if (response.ok) {
-            // Отправляем сообщение с фото
             socket.emit('send_message', {
                 senderId: currentUser.id,
                 receiverId: currentChat.id,
@@ -423,231 +414,22 @@ async function sendPhoto(file) {
 }
 
 // Открыть модальное окно с фото
-let currentZoom = 1;
-let isDragging = false;
-let startX, startY, translateX = 0, translateY = 0;
-
 function openPhotoModal(imageUrl) {
-    // Удаляем старое модальное окно
-    const oldModal = document.getElementById('photo-modal');
-    if (oldModal) oldModal.remove();
-    
-    // Создаём модальное окно
     const modal = document.createElement('div');
-    modal.id = 'photo-modal';
     modal.className = 'photo-modal';
-    
-    // Контент
-    const modalContent = document.createElement('div');
-    modalContent.className = 'photo-modal-content';
-    
-    // Контейнер для фото (для зума и панорамирования)
-    const imageContainer = document.createElement('div');
-    imageContainer.className = 'photo-image-container';
-    
-    const img = document.createElement('img');
-    img.src = imageUrl;
-    img.className = 'photo-modal-img';
-    img.style.transform = `scale(${currentZoom}) translate(${translateX}px, ${translateY}px)`;
-    img.style.transition = 'transform 0.1s ease-out';
-    
-    imageContainer.appendChild(img);
-    
-    // Кнопка закрытия
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'photo-modal-close';
-    closeBtn.innerHTML = '✕';
-    closeBtn.onclick = () => modal.remove();
-    
-    // Меню с тремя точками
-    const menuBtn = document.createElement('button');
-    menuBtn.className = 'photo-modal-menu';
-    menuBtn.innerHTML = '⋮';
-    
-    // Выпадающее меню
-    const dropdown = document.createElement('div');
-    dropdown.className = 'photo-modal-dropdown';
-    dropdown.style.display = 'none';
-    
-    const saveBtn = document.createElement('div');
-    saveBtn.innerHTML = '💾 Сохранить в галерею';
-    saveBtn.onclick = () => savePhotoToGallery(imageUrl);
-    
-    dropdown.appendChild(saveBtn);
-    
-    menuBtn.onclick = (e) => {
-        e.stopPropagation();
-        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-    };
-    
-    modalContent.appendChild(closeBtn);
-    modalContent.appendChild(menuBtn);
-    modalContent.appendChild(dropdown);
-    modalContent.appendChild(imageContainer);
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
-    
-    // Сброс зума при закрытии
-    modal.onclose = () => {
-        currentZoom = 1;
-        translateX = 0;
-        translateY = 0;
-    };
-    
-    // Закрыть по клику на фон
+    modal.innerHTML = `
+        <div class="photo-modal-content">
+            <button class="photo-modal-close" onclick="this.parentElement.parentElement.remove()">✕</button>
+            <img src="${imageUrl}" class="photo-modal-img">
+        </div>
+    `;
     modal.onclick = (e) => {
-        if (e.target === modal) {
-            modal.remove();
-            currentZoom = 1;
-            translateX = 0;
-            translateY = 0;
-        }
+        if (e.target === modal) modal.remove();
     };
-    
-    // Закрыть по ESC
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && document.getElementById('photo-modal')) {
-            modal.remove();
-            currentZoom = 1;
-            translateX = 0;
-            translateY = 0;
-        }
-    });
-    
-    // ========== ЗУМ ДЛЯ КОМПЬЮТЕРА (колесико мыши) ==========
-    img.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        
-        // Получаем координаты мыши относительно изображения
-        const rect = img.getBoundingClientRect();
-        const mouseX = (e.clientX - rect.left) / rect.width;
-        const mouseY = (e.clientY - rect.top) / rect.height;
-        
-        // Меняем масштаб
-        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        const newZoom = Math.min(Math.max(currentZoom + delta, 1), 5);
-        
-        if (newZoom !== currentZoom) {
-            // Корректируем панорамирование, чтобы масштабировалось под курсор
-            const scaleChange = newZoom / currentZoom;
-            translateX = mouseX * rect.width * (1 - scaleChange) + translateX * scaleChange;
-            translateY = mouseY * rect.height * (1 - scaleChange) + translateY * scaleChange;
-            
-            currentZoom = newZoom;
-            img.style.transform = `scale(${currentZoom}) translate(${translateX}px, ${translateY}px)`;
-        }
-    });
-    
-    // ========== ЗУМ ДЛЯ ТЕЛЕФОНА (два пальца) ==========
-    let initialDistance = 0;
-    let initialZoom = 1;
-    
-    img.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 2) {
-            e.preventDefault();
-            const dx = e.touches[0].clientX - e.touches[1].clientX;
-            const dy = e.touches[0].clientY - e.touches[1].clientY;
-            initialDistance = Math.hypot(dx, dy);
-            initialZoom = currentZoom;
-        }
-    });
-    
-    img.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 2) {
-            e.preventDefault();
-            const dx = e.touches[0].clientX - e.touches[1].clientX;
-            const dy = e.touches[0].clientY - e.touches[1].clientY;
-            const distance = Math.hypot(dx, dy);
-            const scale = distance / initialDistance;
-            currentZoom = Math.min(Math.max(initialZoom * scale, 1), 5);
-            img.style.transform = `scale(${currentZoom}) translate(${translateX}px, ${translateY}px)`;
-        }
-    });
-    
-    // ========== ПАНОРАМИРОВАНИЕ (при зумме > 1) ==========
-    let startPanX, startPanY, startTranslateX, startTranslateY;
-    
-    img.addEventListener('mousedown', (e) => {
-        if (currentZoom > 1) {
-            e.preventDefault();
-            isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            startTranslateX = translateX;
-            startTranslateY = translateY;
-            img.style.cursor = 'grabbing';
-        }
-    });
-    
-    window.addEventListener('mousemove', (e) => {
-        if (isDragging && currentZoom > 1) {
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
-            translateX = startTranslateX + dx;
-            translateY = startTranslateY + dy;
-            img.style.transform = `scale(${currentZoom}) translate(${translateX}px, ${translateY}px)`;
-        }
-    });
-    
-    window.addEventListener('mouseup', () => {
-        isDragging = false;
-        if (img) img.style.cursor = 'zoom-in';
-    });
-    
-    // Для телефона: панорамирование
-    img.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1 && currentZoom > 1) {
-            e.preventDefault();
-            isDragging = true;
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            startTranslateX = translateX;
-            startTranslateY = translateY;
-        }
-    });
-    
-    img.addEventListener('touchmove', (e) => {
-        if (isDragging && e.touches.length === 1 && currentZoom > 1) {
-            e.preventDefault();
-            const dx = e.touches[0].clientX - startX;
-            const dy = e.touches[0].clientY - startY;
-            translateX = startTranslateX + dx;
-            translateY = startTranslateY + dy;
-            img.style.transform = `scale(${currentZoom}) translate(${translateX}px, ${translateY}px)`;
-        }
-    });
-    
-    img.addEventListener('touchend', () => {
-        isDragging = false;
-    });
+    document.body.appendChild(modal);
 }
 
-// Сохранить фото в галерею
-async function savePhotoToGallery(imageUrl) {
-    // Проверяем настройку "сохранять в галерею"
-    if (!appSettings.media.saveToGallery) {
-        // Если настройка выключена — скачиваем вручную
-        const link = document.createElement('a');
-        link.href = imageUrl;
-        link.download = imageUrl.split('/').pop();
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        alert('📸 Фото сохранено в загрузки');
-    } else {
-        // Если включена — нужно запросить разрешение и сохранить в галерею
-        // Для веб-версии это сложно, поэтому пока просто скачиваем
-        const link = document.createElement('a');
-        link.href = imageUrl;
-        link.download = imageUrl.split('/').pop();
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        alert('📸 Фото сохранено в загрузки');
-    }
-}
-    
-// Сделать функции глобальными
+// ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ==========
 window.openChat = openChat;
 window.sendMessage = sendMessage;
 window.addMessageToChat = addMessageToChat;
@@ -661,4 +443,3 @@ window.toggleChatMenu = toggleChatMenu;
 window.showMiniProfile = showMiniProfile;
 window.selectPhoto = selectPhoto;
 window.openPhotoModal = openPhotoModal;
-window.savePhotoToGallery = savePhotoToGallery;
