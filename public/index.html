@@ -15,6 +15,15 @@
         </div>
     </div>
 
+    <div class="message-input-container">
+    <button class="photo-btn" onclick="selectPhoto()">📷</button>
+    <input type="text" class="message-input" id="message-input" 
+           placeholder="Сообщение" 
+           onkeyup="handleTyping(event)" 
+           onkeypress="if(event.key==='Enter') sendMessage()">
+    <button class="send-btn" onclick="sendMessage()">➤</button>
+</div>
+    
     <!-- Модальное окно для просмотра изображений -->
     <div id="imageModal" class="modal" style="display: none;" onclick="closeModal()">
         <span class="modal-close">&times;</span>
