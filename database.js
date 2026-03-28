@@ -88,6 +88,22 @@ await pool.query(`
 `);
 console.log('✅ Таблица photos готова');
   
+  // Таблица файлов (для всех типов файлов)
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS files (
+        id SERIAL PRIMARY KEY,
+        message_id INTEGER,
+        file_name TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        file_size INTEGER,
+        file_type TEXT,
+        file_data BYTEA NOT NULL,
+        uploaded_at BIGINT,
+        FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
+    )
+`);
+console.log('✅ Таблица files готова');
+  
   // Индексы
   await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id)');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id)');
