@@ -72,9 +72,6 @@ async function createTables() {
   `);
   console.log('✅ Таблица messages готова');
 
-// Индекс для быстрого поиска
-await pool.query('CREATE INDEX IF NOT EXISTS idx_voice_messages_message ON voice_messages(message_id)');
-  
   // Индексы
   await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id)');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id)');
