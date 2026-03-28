@@ -2,60 +2,10 @@ const express = require('express');
 const http = require('http');
 const socketIO = require('socket.io');
 const cors = require('cors');
-const path = require('path');           // ← ОДИН РАЗ
-const fs = require('fs');               // ← ОДИН РАЗ
+const path = require('path');
+const fs = require('fs');
 const multer = require('multer');
-// Создаём папку для фото
-const PHOTOS_DIR = path.join(__dirname, 'public', 'photos');
-if (!fs.existsSync(PHOTOS_DIR)) {
-    fs.mkdirSync(PHOTOS_DIR, { recursive: true });
-}
-
-// Настройка multer для фото
-const photoStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, PHOTOS_DIR);
-    },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
-    }
-});
-
-const uploadPhoto = multer({
-    storage: photoStorage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Только изображения'), false);
-        }
-    }
-});
-
-// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФОТО
-app.post('/api/upload-photo', uploadPhoto.single('photo'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'Файл не загружен' });
-    }
-    
-    const photoUrl = `/photos/${req.file.filename}`;
-    
-    res.json({
-        success: true,
-        photoUrl: photoUrl,
-        fileName: req.file.originalname,
-        fileSize: req.file.size
-    });
-});
-
-const { Pool } = require('pg');         // ← ОДИН РАЗ
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
+const { Pool } = require('pg');
 
 const { 
   initializeDatabase, 
@@ -97,6 +47,36 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ========== СОЗДАЁМ ПАПКУ ДЛЯ ФОТО ==========
+const PHOTOS_DIR = path.join(__dirname, 'public', 'photos');
+if (!fs.existsSync(PHOTOS_DIR)) {
+  fs.mkdirSync(PHOTOS_DIR, { recursive: true });
+  console.log('📁 Создана папка photos');
+}
+
+// ========== НАСТРОЙКА MULTER ДЛЯ ФОТО ==========
+const photoStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, PHOTOS_DIR);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const uploadPhoto = multer({
+  storage: photoStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Только изображения'), false);
+    }
+  }
+});
+
 // ========== API МАРШРУТЫ ==========
 app.get('/api/status', (req, res) => {
   res.json({
@@ -122,20 +102,20 @@ app.get('/api/health', (req, res) => {
   }
 });
 
-// Маршрут для загрузки фото
+// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФОТО
 app.post('/api/upload-photo', uploadPhoto.single('photo'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'Файл не загружен' });
-    }
-    
-    const photoUrl = `/photos/${req.file.filename}`;
-    
-    res.json({
-        success: true,
-        photoUrl: photoUrl,
-        fileName: req.file.originalname,
-        fileSize: req.file.size
-    });
+  if (!req.file) {
+    return res.status(400).json({ error: 'Файл не загружен' });
+  }
+  
+  const photoUrl = `/photos/${req.file.filename}`;
+  
+  res.json({
+    success: true,
+    photoUrl: photoUrl,
+    fileName: req.file.originalname,
+    fileSize: req.file.size
+  });
 });
 
 // Подключаем маршруты
@@ -201,33 +181,33 @@ io.on('connection', (socket) => {
   });
 
   socket.on('send_message', async (data) => {
-  const { senderId, receiverId, message, type = 'text' } = data;
+    const { senderId, receiverId, message, type = 'text' } = data;
 
-  console.log(`📨 Server: sending ${type} from ${senderId} to ${receiverId}`);
+    console.log(`📨 Server: sending ${type} from ${senderId} to ${receiverId}`);
 
-  try {
-    const messageData = await createMessage({
-      senderId,
-      receiverId,
-      message: message || '',
-      type
-    });
+    try {
+      const messageData = await createMessage({
+        senderId,
+        receiverId,
+        message: message || '',
+        type
+      });
 
-    const user = await findUserById(senderId);
-    if (user) {
-      messageData.senderName = user.username;
+      const user = await findUserById(senderId);
+      if (user) {
+        messageData.senderName = user.username;
+      }
+
+      io.to(`user_${receiverId}`).emit('new_message', messageData);
+      console.log(`✅ Server: message sent to user_${receiverId}`);
+
+      socket.emit('message_sent', messageData);
+
+    } catch (err) {
+      console.error('❌ Ошибка сохранения сообщения:', err);
+      socket.emit('error', { message: 'Не удалось отправить сообщение' });
     }
-
-    io.to(`user_${receiverId}`).emit('new_message', messageData);
-    console.log(`✅ Server: message sent to user_${receiverId}`);
-
-    socket.emit('message_sent', messageData);
-
-  } catch (err) {
-    console.error('❌ Ошибка сохранения сообщения:', err);
-    socket.emit('error', { message: 'Не удалось отправить сообщение' });
-  }
-});
+  });
 
   socket.on('chat_cleared', (data) => {
     const { userId, contactId } = data;
@@ -263,7 +243,6 @@ io.on('connection', (socket) => {
         userId: userId,
         contactId: contactId
       });
-    
     } catch (err) {
       console.error('Ошибка отметки прочитанных:', err);
     }
@@ -329,6 +308,7 @@ server.listen(PORT, HOST, () => {
 http://${localIP}:${PORT}
 
 📁 База данных: PostgreSQL
+📁 Фото: ./public/photos
 ⚡ WebSocket готов к работе
   `);
 });
