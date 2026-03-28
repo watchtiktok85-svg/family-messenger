@@ -1176,6 +1176,19 @@ input:checked + .slider:before {
         height: 40px;
         font-size: 18px;
     }
+
+    .fab-reload {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+        bottom: 70px;
+        right: 15px;
+    }
+    
+    .reload-notification .notification-content {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
 }
 
 @media (max-width: 400px) {
@@ -1338,5 +1351,68 @@ input:checked + .slider:before {
     
     .auth-screen {
         padding-top: env(safe-area-inset-top, 20px) !important;
+    }
+}
+
+/* Плавающая кнопка перезагрузки (правый нижний угол) */
+.fab-reload {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    z-index: 1000;
+}
+
+.fab-reload:hover {
+    transform: scale(1.05);
+    background: var(--accent-dark);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.fab-reload:active {
+    transform: scale(0.95);
+}
+
+/* Уведомление о перезагрузке */
+.reload-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10000;
+    animation: fadeInScale 0.3s ease;
+}
+
+.reload-notification .notification-content {
+    background: var(--accent);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    font-size: 16px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
     }
 }
