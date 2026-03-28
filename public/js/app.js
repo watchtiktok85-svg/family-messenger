@@ -454,11 +454,25 @@ socket.on('new_message', (message) => {
         updateUserStatus(data.userId, data.status);
     });
     
-    socket.on('message_read', (data) => {
-        if (typeof window.updateMessageStatus === 'function') {
-            window.updateMessageStatus(data.messageId, 'read');
-        }
-    });
+    socket.on('messages_read', (data) => {
+    console.log('📖 Сообщения прочитаны:', data);
+    
+    // Если мы в чате с тем, кто прочитал сообщения
+    if (currentChat && currentChat.id === data.userId) {
+        // Обновляем все сообщения, отправленные нами, на "прочитано"
+        document.querySelectorAll('.message.sent').forEach(msg => {
+            const statusEl = msg.querySelector('.message-status');
+            if (statusEl) {
+                statusEl.textContent = '✓✓';
+            }
+        });
+    }
+    
+    // Также можно обновить в списке чатов
+    if (typeof updateChatsList === 'function') {
+        updateChatsList();
+    }
+});
     
     socket.on('disconnect', () => {
         console.log('🔴 Socket disconnected');
