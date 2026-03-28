@@ -234,38 +234,57 @@ async function getRecentChats(userId) {
       const contactId = contact.contact_id;
       
       const lastMsg = await pool.query(
-        `SELECT message, timestamp, status, type 
-         FROM messages 
-         WHERE (sender_id = $1 AND receiver_id = $2) 
-            OR (sender_id = $2 AND receiver_id = $1) 
-         ORDER BY timestamp DESC 
-         LIMIT 1`,
-        [userId, contactId]
-      );
-      
-      const userInfo = await pool.query(
-        `SELECT username, status FROM users WHERE id = $1`,
-        [contactId]
-      );
-      
-      results.push({
-        contact_id: contactId,
-        contact_name: userInfo.rows[0]?.username || 'Пользователь',
-        contact_status: userInfo.rows[0]?.status || 'offline',
-        last_message: lastMsg.rows[0]?.message || '',
-        last_timestamp: lastMsg.rows[0]?.timestamp || null,
-        last_status: lastMsg.rows[0]?.status || '',
-        last_type: lastMsg.rows[0]?.type || 'text'
-      });
+                `SELECT message, timestamp, status, type 
+                 FROM messages 
+                 WHERE (sender_id = $1 AND receiver_id = $2) 
+                    OR (sender_id = $2 AND receiver_id = $1) 
+                 ORDER BY timestamp DESC 
+                 LIMIT 1`,
+                [userId, contactId]
+            );
+            
+            // Получаем информацию о пользователе
+            const userInfo = await pool.query(
+                `SELECT username, status FROM users WHERE id = $1`,
+                [contactId]
+            );
+            
+            // Форматируем последнее сообщение для отображения в списке
+            let lastMessageText = '';
+            if (lastMsg.rows[0]) {
+                const msg = lastMsg.rows[0];
+                if (msg.type === 'text') {
+                    lastMessageText = msg.message;
+                } else if (msg.type === 'image') {
+                    lastMessageText = '📷 Фото';
+                } else if (msg.type === 'file') {
+                    lastMessageText = '📎 Файл';
+                } else if (msg.type === 'audio') {
+                    lastMessageText = '🎤 Голосовое';
+                } else {
+                    lastMessageText = '📨 Сообщение';
+                }
+            }
+            
+            results.push({
+                contact_id: contactId,
+                contact_name: userInfo.rows[0]?.username || 'Пользователь',
+                contact_status: userInfo.rows[0]?.status || 'offline',
+                last_message: lastMessageText,
+                last_timestamp: lastMsg.rows[0]?.timestamp || null,
+                last_status: lastMsg.rows[0]?.status || '',
+                last_type: lastMsg.rows[0]?.type || 'text',
+                last_message_raw: lastMsg.rows[0]?.message || '' // сохраняем оригинал для других нужд
+            });
+        }
+        
+        results.sort((a, b) => (b.last_timestamp || 0) - (a.last_timestamp || 0));
+        return results;
+        
+    } catch (error) {
+        console.error('❌ Ошибка в getRecentChats:', error);
+        return [];
     }
-    
-    results.sort((a, b) => (b.last_timestamp || 0) - (a.last_timestamp || 0));
-    return results;
-    
-  } catch (error) {
-    console.error('❌ Ошибка в getRecentChats:', error);
-    return [];
-  }
 }
 
 async function deleteMessagesBetweenUsers(userId1, userId2) {
