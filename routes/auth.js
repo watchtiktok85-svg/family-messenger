@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
 
-module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus, getUsers }) => {
+module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus, getUsers, updateUsername }) => {
   
   // Регистрация по номеру телефона
   router.post('/register', async (req, res) => {
@@ -181,27 +181,23 @@ module.exports = ({ findUserByPhone, findUserById, createUser, updateUserStatus,
   });
 
   // Изменить имя пользователя
-  router.put('/change-username/:userId', async (req, res) => {
-    const { userId } = req.params;
-    const { newUsername } = req.body;
-    
-    if (!newUsername || newUsername.length < 3) {
-      return res.status(400).json({ error: 'Имя должно быть минимум 3 символа' });
-    }
-    
-    try {
-      // Здесь нужно добавить функцию updateUsername в database.js
-      // Пока через прямой запрос
-      const { Pool } = require('pg');
-      const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } });
-      
-      await pool.query('UPDATE users SET username = $1 WHERE id = $2', [newUsername, userId]);
-      res.json({ success: true, username: newUsername });
-    } catch (error) {
-      console.error('Ошибка изменения имени:', error);
-      res.status(500).json({ error: 'Ошибка сервера' });
-    }
-  });
+router.put('/change-username/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const { newUsername } = req.body;
+  
+  if (!newUsername || newUsername.length < 3) {
+    return res.status(400).json({ error: 'Имя должно быть минимум 3 символа' });
+  }
+  
+  try {
+    // ИСПРАВЛЕНО: используем функцию из database.js
+    const updatedUser = await updateUsername(parseInt(userId), newUsername);
+    res.json({ success: true, username: updatedUser.username });
+  } catch (error) {
+    console.error('Ошибка изменения имени:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
 
   return router;
 };
