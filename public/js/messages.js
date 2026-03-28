@@ -194,6 +194,13 @@ function renderMessage(msg) {
       </div>
     </div>
   `;
+
+else if (msg.type === 'image') {
+    content = `
+        <div class="photo-message" onclick="openPhotoModal('${msg.message}')">
+            <img src="${msg.message}" class="message-photo" loading="lazy">
+        </div>
+    `;
 }
 
 function addMessageToChat(message) {
@@ -360,6 +367,63 @@ async function showMiniProfile(userId, username) {
     }
 }
 
+// Выбор фото
+function selectPhoto() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            await sendPhoto(file);
+        }
+    };
+    input.click();
+}
+
+// Отправка фото
+async function sendPhoto(file) {
+    const formData = new FormData();
+    formData.append('photo', file);
+    formData.append('senderId', currentUser.id);
+    formData.append('receiverId', currentChat.id);
+    
+    // Показываем индикатор загрузки
+    const progressBar = document.getElementById('uploadProgress');
+    const progressFill = document.getElementById('progressFill');
+    if (progressBar) progressBar.style.display = 'block';
+    
+    try {
+        const response = await fetch(`${SERVER_URL}/api/upload-photo`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (progressBar) progressBar.style.display = 'none';
+        if (progressFill) progressFill.style.width = '0%';
+        
+        if (response.ok) {
+            // Отправляем сообщение с фото
+            socket.emit('send_message', {
+                senderId: currentUser.id,
+                receiverId: currentChat.id,
+                message: data.photoUrl,
+                type: 'image',
+                fileName: file.name,
+                fileSize: file.size
+            });
+        } else {
+            alert('❌ Ошибка при отправке фото');
+        }
+    } catch (error) {
+        console.error('Error sending photo:', error);
+        alert('Ошибка при отправке фото');
+        if (progressBar) progressBar.style.display = 'none';
+    }
+}
+
 // Сделать функции глобальными
 window.openChat = openChat;
 window.sendMessage = sendMessage;
@@ -372,3 +436,4 @@ window.clearChat = clearChat;
 window.deleteChat = deleteChat;
 window.toggleChatMenu = toggleChatMenu;
 window.showMiniProfile = showMiniProfile;
+window.selectPhoto = selectPhoto;
