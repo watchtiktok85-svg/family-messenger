@@ -9,7 +9,38 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
+// Создаём папку для фото
+const PHOTOS_DIR = path.join(__dirname, 'public', 'photos');
+if (!fs.existsSync(PHOTOS_DIR)) {
+    fs.mkdirSync(PHOTOS_DIR, { recursive: true });
+}
+
+// Настройка multer для фото
+const photoStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, PHOTOS_DIR);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const uploadPhoto = multer({
+    storage: photoStorage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Только изображения'), false);
+        }
+    }
+});
 const { 
   initializeDatabase, 
   findUserByPhone, 
@@ -73,6 +104,22 @@ app.get('/api/health', (req, res) => {
       message: 'Сервер запускается...' 
     });
   }
+});
+
+// Маршрут для загрузки фото
+app.post('/api/upload-photo', uploadPhoto.single('photo'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'Файл не загружен' });
+    }
+    
+    const photoUrl = `/photos/${req.file.filename}`;
+    
+    res.json({
+        success: true,
+        photoUrl: photoUrl,
+        fileName: req.file.originalname,
+        fileSize: req.file.size
+    });
 });
 
 // Подключаем маршруты
