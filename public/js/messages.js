@@ -185,13 +185,47 @@ function renderMessage(msg) {
     
     if (msg.type === 'text') {
         content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
-    } else if (msg.type === 'image') {
-    content = `
-        <div class="photo-message" onclick="openPhotoModal('${msg.message}')">
-            <img src="${msg.message}" class="message-photo" loading="lazy">
-        </div>
-    `;
-} else {
+    } 
+    else if (msg.type === 'image') {
+        content = `
+            <div class="photo-message" onclick="openPhotoModal('${msg.message}')">
+                <img src="${msg.message}" class="message-photo" loading="lazy">
+            </div>
+        `;
+    }
+    else if (msg.type === 'file') {
+        const fileName = msg.fileName || 'Файл';
+        const fileSize = msg.fileSize || 0;
+        const fileIcon = getFileIcon(fileName);
+        
+        content = `
+            <div class="file-message" onclick="downloadFile('${msg.message}', '${fileName}')">
+                <span>${fileIcon} ${escapeHtml(fileName)}</span>
+                <small>${formatFileSize(fileSize)}</small>
+            </div>
+        `;
+    }
+    else if (msg.type === 'video') {
+        content = `
+            <div class="video-message">
+                <video controls class="message-video" preload="metadata">
+                    <source src="${msg.message}" type="${msg.fileType || 'video/mp4'}">
+                    Ваш браузер не поддерживает видео
+                </video>
+            </div>
+        `;
+    }
+    else if (msg.type === 'audio') {
+        content = `
+            <div class="audio-message">
+                <audio controls class="message-audio" preload="metadata">
+                    <source src="${msg.message}" type="${msg.fileType || 'audio/mpeg'}">
+                    Ваш браузер не поддерживает аудио
+                </audio>
+            </div>
+        `;
+    }
+    else {
         content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
     }
     
