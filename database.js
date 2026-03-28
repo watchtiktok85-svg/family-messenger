@@ -187,11 +187,6 @@ async function createMessage(messageData) {
   
   const messageId = result.rows[0].id;
   
-  // Если это голосовое сообщение и есть аудиоданные
-  if (messageData.type === 'audio' && messageData.audioData) {
-    await saveVoiceMessage(messageId, messageData.audioData, messageData.duration || 0);
-  }
-  
   return { id: result.rows[0].id, ...messageData, timestamp: timestamp, audioUrl: messageData.type === 'audio' ? `/api/voice/${messageId}` : null };
 }
 
