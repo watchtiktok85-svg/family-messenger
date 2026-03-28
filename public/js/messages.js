@@ -226,6 +226,12 @@ function addMessageToChat(message) {
     container.insertAdjacentHTML('beforeend', messageHtml);
     scrollToBottom();
     
+     // ========== АВТОСОХРАНЕНИЕ ФОТО ==========
+    // Если это фото и его отправил не текущий пользователь
+    if (message.type === 'image' && message.senderId !== currentUser.id) {
+        autoSavePhotoIfNeeded(message.message);
+    }
+    
     if (message.senderId === currentChat?.id) {
         markMessagesAsRead(currentChat.id);
     }
@@ -407,7 +413,7 @@ async function sendPhoto(file) {
     }
 }
 
-// Открыть модальное окно с фото (с зумом и тремя точками)
+// Открыть модальное окно с фото (с тремя точками и сохранением)
 function openPhotoModal(imageUrl) {
     // Удаляем старое модальное окно
     const oldModal = document.querySelector('.photo-modal');
@@ -426,7 +432,7 @@ function openPhotoModal(imageUrl) {
             <button class="photo-modal-close" onclick="this.parentElement.parentElement.remove()">✕</button>
             <button class="photo-modal-menu" onclick="togglePhotoMenu()">⋮</button>
             <div id="photo-menu-dropdown" class="photo-menu-dropdown" style="display:none;">
-                <div onclick="downloadPhoto('${imageUrl}')">💾 Сохранить</div>
+                <div onclick="downloadPhoto('${imageUrl}')">💾 Сохранить в галерею</div>
             </div>
             <div class="photo-image-container">
                 <img src="${imageUrl}" class="photo-modal-img" id="photo-modal-img" style="transform: scale(1) translate(0px, 0px); cursor: zoom-in;">
@@ -442,14 +448,12 @@ function openPhotoModal(imageUrl) {
     
     const img = document.getElementById('photo-modal-img');
     
-    // Зум колесиком мыши
+    // Зум колесиком мыши (как было)
     img.addEventListener('wheel', (e) => {
         e.preventDefault();
-        
         const rect = img.getBoundingClientRect();
         const mouseX = (e.clientX - rect.left) / rect.width;
         const mouseY = (e.clientY - rect.top) / rect.height;
-        
         const delta = e.deltaY > 0 ? -0.1 : 0.1;
         const newZoom = Math.min(Math.max(currentZoom + delta, 1), 5);
         
@@ -457,14 +461,13 @@ function openPhotoModal(imageUrl) {
             const scaleChange = newZoom / currentZoom;
             translateX = mouseX * rect.width * (1 - scaleChange) + translateX * scaleChange;
             translateY = mouseY * rect.height * (1 - scaleChange) + translateY * scaleChange;
-            
             currentZoom = newZoom;
             img.style.transform = `scale(${currentZoom}) translate(${translateX}px, ${translateY}px)`;
             img.style.cursor = currentZoom > 1 ? 'grab' : 'zoom-in';
         }
     });
     
-    // Панорамирование мышью
+    // Панорамирование (как было)
     img.addEventListener('mousedown', (e) => {
         if (currentZoom > 1) {
             e.preventDefault();
@@ -492,7 +495,7 @@ function openPhotoModal(imageUrl) {
         if (img) img.style.cursor = currentZoom > 1 ? 'grab' : 'zoom-in';
     });
     
-    // Для телефона: два пальца для зума
+    // Для телефона (как было)
     let initialDistance = 0;
     let initialZoom = 1;
     
@@ -521,7 +524,6 @@ function openPhotoModal(imageUrl) {
             const scale = distance / initialDistance;
             currentZoom = Math.min(Math.max(initialZoom * scale, 1), 5);
             img.style.transform = `scale(${currentZoom}) translate(${translateX}px, ${translateY}px)`;
-            img.style.cursor = currentZoom > 1 ? 'grab' : 'zoom-in';
         } else if (e.touches.length === 1 && isDragging && currentZoom > 1) {
             e.preventDefault();
             const dx = e.touches[0].clientX - startX;
@@ -545,18 +547,48 @@ function togglePhotoMenu() {
     }
 }
 
-// Скачать фото
+// Скачать фото (ручное сохранение)
 function downloadPhoto(imageUrl) {
-    const a = document.createElement('a');
-    a.href = imageUrl;
-    a.download = imageUrl.split('/').pop();
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    savePhotoToGallery(imageUrl);
     
     // Закрываем меню
     const menu = document.getElementById('photo-menu-dropdown');
     if (menu) menu.style.display = 'none';
+}
+
+// Сохранить фото в галерею (загрузка)
+async function savePhotoToGallery(imageUrl) {
+    try {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        
+        // Создаём ссылку для скачивания
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = imageUrl.split('/').pop() + '.jpg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        console.log('✅ Фото сохранено');
+        return true;
+    } catch (error) {
+        console.error('❌ Ошибка сохранения фото:', error);
+        return false;
+    }
+}
+
+// Проверить, нужно ли автоматически сохранять фото
+async function autoSavePhotoIfNeeded(imageUrl) {
+    // Проверяем настройку
+    const saveToGallery = localStorage.getItem('settings_save_to_gallery') === 'true';
+    
+    if (saveToGallery) {
+        console.log('📸 Автосохранение фото включено, сохраняем...');
+        await savePhotoToGallery(imageUrl);
+    }
 }
 
 // ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ==========
@@ -575,3 +607,6 @@ window.selectPhoto = selectPhoto;
 window.openPhotoModal = openPhotoModal;
 window.togglePhotoMenu = togglePhotoMenu;
 window.downloadPhoto = downloadPhoto;
+window.savePhotoToGallery = savePhotoToGallery;
+window.autoSavePhotoIfNeeded = autoSavePhotoIfNeeded;
+window.togglePhotoMenu = togglePhotoMenu;
