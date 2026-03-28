@@ -97,16 +97,6 @@ function toggleNotificationSound() {
     saveSettings();
 }
 
-function toggleSaveToGallery() {
-    appSettings.media.saveToGallery = !appSettings.media.saveToGallery;
-    saveSettings();
-}
-
-function setPhotoQuality(value) {
-    appSettings.media.photoQuality = value;
-    saveSettings();
-}
-
 function setFontSize(value) {
     appSettings.appearance.fontSize = value;
     applySettings();
