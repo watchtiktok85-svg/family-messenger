@@ -126,6 +126,7 @@ function toggleNotificationSound() {
 function toggleSaveToGallery() {
     appSettings.media.saveToGallery = !appSettings.media.saveToGallery;
     saveSettings();
+    alert(`Автосохранение фото ${appSettings.media.saveToGallery ? 'включено' : 'выключено'}`);
 }
 
 function setPhotoQuality(value) {
