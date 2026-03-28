@@ -8,6 +8,12 @@ const { Pool } = require('pg');
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
+const { Pool } = require('pg');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
 const { 
   initializeDatabase, 
   findUserByPhone, 
@@ -92,27 +98,6 @@ const messageRoutes = require('./routes/messages')({
 app.use('/api/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
 
-// ========== МАРШРУТ ДЛЯ ПОЛУЧЕНИЯ ГОЛОСОВЫХ СООБЩЕНИЙ ==========
-app.get('/api/voice/:messageId', async (req, res) => {
-  const { messageId } = req.params;
-  
-  try {
-    const voice = await getVoiceMessage(parseInt(messageId));
-    
-    if (!voice) {
-      return res.status(404).json({ error: 'Голосовое сообщение не найдено' });
-    }
-    
-    res.set('Content-Type', 'audio/webm');
-    res.set('Content-Length', voice.audio_data.length);
-    res.send(voice.audio_data);
-    
-  } catch (err) {
-    console.error('❌ Ошибка получения голосового:', err);
-    res.status(500).json({ error: 'Ошибка получения голосового' });
-  }
-});
-
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 console.log('🔄 Инициализация PostgreSQL...');
 initializeDatabase().then(() => {
@@ -155,7 +140,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('send_message', async (data) => {
-  const { senderId, receiverId, message, type = 'text', audioData, duration } = data;
+  const { senderId, receiverId, message, type = 'text' } = data;
 
   console.log(`📨 Server: sending ${type} from ${senderId} to ${receiverId}`);
 
@@ -165,7 +150,7 @@ io.on('connection', (socket) => {
       receiverId,
       message: message || '',
       type,
-      audioData: audioData ? Buffer.from(audioData) : null,
+      audioData: audioData ? : null,
       duration: duration || 0
     });
 
