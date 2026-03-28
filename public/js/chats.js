@@ -238,8 +238,8 @@ function navigateToSettings() {
     if (typeof window.showSettings === 'function') {
         window.showSettings();
     } else {
-        console.error('showSettings not found');
-        alert('Ошибка загрузки настроек');
+        console.error('showSettings not found, available globals:', Object.keys(window).filter(k => k.includes('show')));
+        alert('Ошибка загрузки настроек. Функция showSettings не найдена.');
     }
 }
 
