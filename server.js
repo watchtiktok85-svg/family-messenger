@@ -102,20 +102,66 @@ app.get('/api/health', (req, res) => {
   }
 });
 
-// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФОТО
+// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФОТО (СОХРАНЕНИЕ В БД)
 app.post('/api/upload-photo', uploadPhoto.single('photo'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'Файл не загружен' });
-  }
-  
-  const photoUrl = `/photos/${req.file.filename}`;
-  
-  res.json({
-    success: true,
-    photoUrl: photoUrl,
-    fileName: req.file.originalname,
-    fileSize: req.file.size
-  });
+    if (!req.file) {
+        return res.status(400).json({ error: 'Файл не загружен' });
+    }
+    
+    try {
+        // Читаем файл как буфер
+        const fileBuffer = fs.readFileSync(req.file.path);
+        
+        // Сохраняем в БД
+        const result = await pool.query(
+            `INSERT INTO photos (file_name, file_path, file_size, file_type, file_data, uploaded_at) 
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+            [req.file.originalname, `/api/photo/${Date.now()}`, req.file.size, req.file.mimetype, fileBuffer, Date.now()]
+        );
+        
+        // Удаляем временный файл
+        fs.unlinkSync(req.file.path);
+        
+        console.log(`✅ Фото сохранено в БД, ID: ${result.rows[0].id}`);
+        
+        res.json({
+            success: true,
+            photoId: result.rows[0].id,
+            photoUrl: `/api/photo/${result.rows[0].id}`,
+            fileName: req.file.originalname,
+            fileSize: req.file.size
+        });
+        
+    } catch (err) {
+        console.error('❌ Ошибка сохранения фото:', err);
+        try { fs.unlinkSync(req.file.path); } catch (e) {}
+        res.status(500).json({ error: 'Ошибка сохранения фото' });
+    }
+});
+
+// МАРШРУТ ДЛЯ ПОЛУЧЕНИЯ ФОТО ИЗ БД
+app.get('/api/photo/:photoId', async (req, res) => {
+    const { photoId } = req.params;
+    
+    try {
+        const result = await pool.query(
+            'SELECT file_name, file_type, file_data FROM photos WHERE id = $1',
+            [photoId]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Фото не найдено' });
+        }
+        
+        const photo = result.rows[0];
+        res.set('Content-Type', photo.file_type);
+        res.set('Content-Disposition', `inline; filename="${photo.file_name}"`);
+        res.send(photo.file_data);
+        
+    } catch (err) {
+        console.error('❌ Ошибка получения фото:', err);
+        res.status(500).json({ error: 'Ошибка получения фото' });
+    }
 });
 
 // Подключаем маршруты
