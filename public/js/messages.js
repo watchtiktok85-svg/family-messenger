@@ -180,12 +180,12 @@ function renderMessage(msg) {
     if (msg.type === 'text') {
         content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
     } else if (msg.type === 'image') {
-        content = `
-            <div class="photo-message" onclick="openPhotoModal('${msg.message}')">
-                <img src="${msg.message}" class="message-photo" loading="lazy">
-            </div>
-        `;
-    } else {
+    content = `
+        <div class="photo-message" onclick="openPhotoModal('${msg.message}')">
+            <img src="${msg.message}" class="message-photo" loading="lazy">
+        </div>
+    `;
+} else {
         content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
     }
     
