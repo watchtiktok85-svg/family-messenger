@@ -38,25 +38,25 @@ async function loadChats() {
             const usersMap = new Map(users.map(u => [u.id, u]));
             
             for (let chat of chats) {
-                const user = usersMap.get(chat.contact_id) || {};
-                const lastMessage = chat.last_message || 'Нет сообщений';
-                const lastTime = chat.last_timestamp ? formatTime(chat.last_timestamp) : '';
-                
-                html += `
-                    <div class="chat-item" onclick="openChat(${chat.contact_id}, '${user.username || 'Пользователь'}')">
-                        <div class="chat-avatar ${user.status === 'online' ? 'online' : ''}">
-                            ${user.username ? user.username[0].toUpperCase() : '?'}
-                        </div>
-                        <div class="chat-info">
-                            <div class="chat-name">
-                                ${user.username || 'Пользователь'}
-                                <span class="chat-time">${lastTime}</span>
-                            </div>
-                            <div class="chat-last-message">${lastMessage}</div>
-                        </div>
-                    </div>
-                `;
-            }
+    const user = usersMap.get(chat.contact_id) || {};
+    const lastMessage = chat.last_message || 'Нет сообщений';
+    const lastTime = chat.last_timestamp ? formatTime(chat.last_timestamp) : '';
+    
+    html += `
+        <div class="chat-item" onclick="openChat(${chat.contact_id}, '${user.username || 'Пользователь'}')">
+            <div class="chat-avatar ${user.status === 'online' ? 'online' : ''}">
+                ${user.username ? user.username[0].toUpperCase() : '?'}
+            </div>
+            <div class="chat-info">
+                <div class="chat-name">
+                    ${user.username || 'Пользователь'}
+                    <span class="chat-time">${lastTime}</span>
+                </div>
+                <div class="chat-last-message">${escapeHtml(lastMessage)}</div>
+            </div>
+        </div>
+    `;
+}
         }
 
         html += `</div></div>${getDrawerHTML()}`;
@@ -104,7 +104,7 @@ async function updateChatsList() {
         const chats = await response.json();
         console.log('🔄 Chats updated:', chats);
         
-        // Обновляем время в списке чатов
+        // Обновляем время и текст сообщения в списке чатов
         document.querySelectorAll('.chat-item').forEach(item => {
             const onclick = item.getAttribute('onclick');
             if (onclick) {
@@ -112,9 +112,15 @@ async function updateChatsList() {
                 if (match) {
                     const userId = parseInt(match[1]);
                     const chat = chats.find(c => c.contact_id === userId);
+                    
                     const timeEl = item.querySelector('.chat-time');
                     if (timeEl && chat?.last_timestamp) {
-                        timeEl.textContent = formatTime(chat.last_timestamp);  // ← ЗДЕСЬ
+                        timeEl.textContent = formatTime(chat.last_timestamp);
+                    }
+                    
+                    const lastMsgEl = item.querySelector('.chat-last-message');
+                    if (lastMsgEl && chat?.last_message) {
+                        lastMsgEl.textContent = escapeHtml(chat.last_message);
                     }
                 }
             }
