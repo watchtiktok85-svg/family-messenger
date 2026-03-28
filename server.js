@@ -22,6 +22,12 @@ const {
   updateUsername
 } = require('./database');
 
+// ========== ПОДКЛЮЧЕНИЕ К БД ==========
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
 // Константы
 let SERVER_READY = false;
 const DEPLOY_ID = process.env.RAILWAY_DEPLOYMENT_ID || 
@@ -47,20 +53,13 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ========== СОЗДАЁМ ПАПКУ ДЛЯ ФОТО ==========
-const PHOTOS_DIR = path.join(__dirname, 'public', 'photos');
-if (!fs.existsSync(PHOTOS_DIR)) {
-  fs.mkdirSync(PHOTOS_DIR, { recursive: true });
-  console.log('📁 Создана папка photos');
-}
-
-// Создаём папку для временных файлов
+// ========== СОЗДАЁМ ПАПКУ ДЛЯ ВРЕМЕННЫХ ФАЙЛОВ ==========
 if (!fs.existsSync('./temp')) {
     fs.mkdirSync('./temp', { recursive: true });
     console.log('📁 Создана папка temp');
 }
 
-// НАСТРОЙКА MULTER ДЛЯ ФОТО (временное хранилище)
+// ========== НАСТРОЙКА MULTER ==========
 const photoStorage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'temp/');
@@ -367,7 +366,6 @@ server.listen(PORT, HOST, () => {
 http://${localIP}:${PORT}
 
 📁 База данных: PostgreSQL
-📁 Фото: ./public/photos
 ⚡ WebSocket готов к работе
   `);
 });
