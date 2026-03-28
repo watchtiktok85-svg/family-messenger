@@ -72,6 +72,22 @@ async function createTables() {
   `);
   console.log('✅ Таблица messages готова');
 
+  // Таблица для фото (в БД, а не в файловой системе)
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS photos (
+        id SERIAL PRIMARY KEY,
+        file_name TEXT NOT NULL,
+        file_path TEXT NOT NULL,
+        file_size INTEGER,
+        file_type TEXT,
+        file_data BYTEA NOT NULL,
+        uploaded_at BIGINT,
+        user_id INTEGER,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+`);
+console.log('✅ Таблица photos готова');
+  
   // Индексы
   await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id)');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id)');
