@@ -17,13 +17,6 @@ let currentUser = null;
 let currentChat = null;
 let typingTimeout = null;
 let statusUpdateInterval = null;
-// Настройки приложения
-let appSettings = {
-    media: {
-        saveToGallery: localStorage.getItem('settings_save_to_gallery') === 'true',
-        photoQuality: localStorage.getItem('settings_photo_quality') || 'good'
-    }
-};
 const app = document.getElementById('app');
 
 // Тема
