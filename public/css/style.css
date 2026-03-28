@@ -1357,3 +1357,49 @@ input:checked + .slider:before {
         padding-top: env(safe-area-inset-top, 12px) !important;
     }
 }
+
+/* Кнопка фото */
+.photo-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-right: 8px;
+}
+
+.photo-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Сообщение с фото */
+.photo-message {
+    cursor: pointer;
+    display: inline-block;
+}
+
+.message-photo {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 12px;
+    object-fit: cover;
+    transition: transform 0.2s;
+}
+
+.message-photo:hover {
+    transform: scale(1.02);
+}
+
+@media (max-width: 600px) {
+    .message-photo {
+        max-width: 150px;
+        max-height: 150px;
+    }
+}
