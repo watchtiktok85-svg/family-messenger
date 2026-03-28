@@ -115,6 +115,72 @@ const uploadFile = multer({
     }
 });
 
+// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФАЙЛОВ
+app.post('/api/upload-file', uploadFile.single('file'), async (req, res) => {
+    console.log('📁 Получен запрос на загрузку файла');
+    
+    if (!req.file) {
+        console.error('❌ Файл не загружен');
+        return res.status(400).json({ error: 'Файл не загружен' });
+    }
+    
+    console.log(`📁 Файл: ${req.file.originalname}, размер: ${req.file.size}, тип: ${req.file.mimetype}`);
+    
+    try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        console.log(`📦 Буфер прочитан, размер: ${fileBuffer.length}`);
+        
+        const result = await pool.query(
+            `INSERT INTO files (file_name, file_path, file_size, file_type, file_data, uploaded_at) 
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+            [req.file.originalname, `/api/file/${Date.now()}`, req.file.size, req.file.mimetype, fileBuffer, Date.now()]
+        );
+        
+        fs.unlinkSync(req.file.path);
+        
+        console.log(`✅ Файл сохранён в БД, ID: ${result.rows[0].id}`);
+        
+        res.json({
+            success: true,
+            fileId: result.rows[0].id,
+            fileUrl: `/api/file/${result.rows[0].id}`,
+            fileName: req.file.originalname,
+            fileSize: req.file.size,
+            fileType: req.file.mimetype
+        });
+        
+    } catch (err) {
+        console.error('❌ Ошибка сохранения файла:', err);
+        try { fs.unlinkSync(req.file.path); } catch (e) {}
+        res.status(500).json({ error: 'Ошибка сохранения файла: ' + err.message });
+    }
+});
+
+// МАРШРУТ ДЛЯ ПОЛУЧЕНИЯ ФАЙЛА ИЗ БД
+app.get('/api/file/:fileId', async (req, res) => {
+    const { fileId } = req.params;
+    
+    try {
+        const result = await pool.query(
+            'SELECT file_name, file_type, file_data FROM files WHERE id = $1',
+            [fileId]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Файл не найден' });
+        }
+        
+        const file = result.rows[0];
+        res.set('Content-Type', file.file_type);
+        res.set('Content-Disposition', `inline; filename="${file.file_name}"`);
+        res.send(file.file_data);
+        
+    } catch (err) {
+        console.error('❌ Ошибка получения файла:', err);
+        res.status(500).json({ error: 'Ошибка получения файла' });
+    }
+});
+
 // ========== API МАРШРУТЫ ==========
 app.get('/api/status', (req, res) => {
   res.json({
@@ -162,47 +228,6 @@ app.post('/api/upload-photo', uploadPhoto.single('photo'), async (req, res) => {
     }
 });
 
-// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФАЙЛОВ
-app.post('/api/upload-file', uploadFile.single('file'), async (req, res) => {
-    console.log('📁 Получен запрос на загрузку файла');
-    
-    if (!req.file) {
-        console.error('❌ Файл не загружен');
-        return res.status(400).json({ error: 'Файл не загружен' });
-    }
-    
-    console.log(`📁 Файл: ${req.file.originalname}, размер: ${req.file.size}, тип: ${req.file.mimetype}`);
-    
-    try {
-        const fileBuffer = fs.readFileSync(req.file.path);
-        console.log(`📦 Буфер прочитан, размер: ${fileBuffer.length}`);
-        
-        const result = await pool.query(
-            `INSERT INTO files (file_name, file_path, file_size, file_type, file_data, uploaded_at) 
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-            [req.file.originalname, `/api/file/${Date.now()}`, req.file.size, req.file.mimetype, fileBuffer, Date.now()]
-        );
-        
-        fs.unlinkSync(req.file.path);
-        
-        console.log(`✅ Файл сохранён в БД, ID: ${result.rows[0].id}`);
-        
-        res.json({
-            success: true,
-            fileId: result.rows[0].id,
-            fileUrl: `/api/file/${result.rows[0].id}`,
-            fileName: req.file.originalname,
-            fileSize: req.file.size,
-            fileType: req.file.mimetype
-        });
-        
-    } catch (err) {
-        console.error('❌ Ошибка сохранения файла:', err);
-        try { fs.unlinkSync(req.file.path); } catch (e) {}
-        res.status(500).json({ error: 'Ошибка сохранения файла: ' + err.message });
-    }
-});
-
 // МАРШРУТ ДЛЯ ПОЛУЧЕНИЯ ФОТО ИЗ БД
 app.get('/api/photo/:photoId', async (req, res) => {
     const { photoId } = req.params;
@@ -225,31 +250,6 @@ app.get('/api/photo/:photoId', async (req, res) => {
     } catch (err) {
         console.error('❌ Ошибка получения фото:', err);
         res.status(500).json({ error: 'Ошибка получения фото' });
-    }
-});
-
-// МАРШРУТ ДЛЯ ПОЛУЧЕНИЯ ФАЙЛА ИЗ БД
-app.get('/api/file/:fileId', async (req, res) => {
-    const { fileId } = req.params;
-    
-    try {
-        const result = await pool.query(
-            'SELECT file_name, file_type, file_data FROM files WHERE id = $1',
-            [fileId]
-        );
-        
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Файл не найден' });
-        }
-        
-        const file = result.rows[0];
-        res.set('Content-Type', file.file_type);
-        res.set('Content-Disposition', `inline; filename="${file.file_name}"`);
-        res.send(file.file_data);
-        
-    } catch (err) {
-        console.error('❌ Ошибка получения файла:', err);
-        res.status(500).json({ error: 'Ошибка получения файла' });
     }
 });
 
