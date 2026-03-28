@@ -44,6 +44,13 @@ function saveSettings() {
 
 // Страница настроек
 function showSettings() {
+    console.log('📱 Opening settings...');
+    
+    if (!app || !app.innerHTML) {
+        console.error('app element not found');
+        return;
+    }
+    
     app.innerHTML = `
         <div class="chats-screen">
             <div class="header">
@@ -148,3 +155,5 @@ window.toggleSaveToGallery = toggleSaveToGallery;
 window.setPhotoQuality = setPhotoQuality;
 window.setFontSize = setFontSize;
 window.setAccentColor = setAccentColor;
+
+console.log('✅ Settings loaded, showSettings is', typeof window.showSettings);
