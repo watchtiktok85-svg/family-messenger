@@ -72,19 +72,6 @@ async function createTables() {
   `);
   console.log('✅ Таблица messages готова');
 
-  // Таблица голосовых сообщений
-await pool.query(`
-  CREATE TABLE IF NOT EXISTS voice_messages (
-    id SERIAL PRIMARY KEY,
-    message_id INTEGER NOT NULL,
-    audio_data BYTEA NOT NULL,
-    duration INTEGER NOT NULL,
-    created_at BIGINT NOT NULL,
-    FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
-  )
-`);
-console.log('✅ Таблица voice_messages готова');
-
 // Индекс для быстрого поиска
 await pool.query('CREATE INDEX IF NOT EXISTS idx_voice_messages_message ON voice_messages(message_id)');
   
@@ -305,30 +292,6 @@ async function cleanupOldMessages(daysOld = 30) {
   console.log(`🧹 Удалено ${result.rowCount} старых сообщений`);
 }
 
-// Сохранить голосовое сообщение
-async function saveVoiceMessage(messageId, audioData, duration) {
-  const result = await pool.query(
-    `INSERT INTO voice_messages (message_id, audio_data, duration, created_at) 
-     VALUES ($1, $2, $3, $4) RETURNING id`,
-    [messageId, audioData, duration, Date.now()]
-  );
-  return result.rows[0].id;
-}
-
-// Получить голосовое сообщение
-async function getVoiceMessage(messageId) {
-  const result = await pool.query(
-    `SELECT audio_data, duration FROM voice_messages WHERE message_id = $1`,
-    [messageId]
-  );
-  return result.rows[0];
-}
-
-// Удалить голосовое сообщение (при удалении сообщения)
-async function deleteVoiceMessage(messageId) {
-  await pool.query('DELETE FROM voice_messages WHERE message_id = $1', [messageId]);
-}
-
 module.exports = {
   initializeDatabase,
   findUserByPhone,
@@ -342,8 +305,5 @@ module.exports = {
   getRecentChats,
   deleteMessagesBetweenUsers,
   updateUsername,
-  cleanupOldMessages,
-  saveVoiceMessage,
-  getVoiceMessage,
-  deleteVoiceMessage
+  cleanupOldMessages
 };
