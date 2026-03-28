@@ -25,7 +25,8 @@ const {
   createMessage, 
   markMessagesAsRead, 
   getRecentChats,
-  deleteMessagesBetweenUsers
+  deleteMessagesBetweenUsers,
+  updateUsername
 } = require('./database');
 
 // Константы
@@ -84,7 +85,8 @@ const authRoutes = require('./routes/auth')({
   findUserById, 
   createUser, 
   updateUserStatus,
-  getUsers
+  getUsers,
+  updateUsername
 });
 
 const messageRoutes = require('./routes/messages')({ 
