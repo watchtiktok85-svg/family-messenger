@@ -285,6 +285,14 @@ async function markMessagesAsRead(contactId) {
                 contactId: contactId 
             })
         });
+        
+        // 👇 ЭТО УЖЕ ДОЛЖНО БЫТЬ
+        socket.emit('mark_read', {
+            messageId: null,  // можно null, сервер обновит все
+            userId: currentUser.id,
+            contactId: contactId
+        });
+        
     } catch (error) {
         console.error('Error marking messages as read:', error);
     }
