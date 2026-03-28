@@ -162,43 +162,41 @@ document.addEventListener('click', function(event) {
 });
 
 function renderMessage(msg) {
-  const isSent = msg.sender_id === currentUser.id;
-  
-  let timestamp = msg.timestamp;
-  if (typeof timestamp === 'string') {
-    timestamp = parseInt(timestamp);
-  }
-  
-  const time = new Date(timestamp).toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  });
-  
-  let content = '';
-  
-  if (msg.type === 'text') {
-    content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
-  }  
-  else {
-    content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
-  }
-  
-  const status = msg.status === 'read' ? '✓✓' : (msg.status === 'sent' ? '✓' : '');
-  
-  return `
-    <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}">
-      ${content}
-      <div class="message-meta">
-        <span class="message-time">${time}</span>
-        ${isSent ? `<span class="message-status">${status}</span>` : ''}
-      </div>
-    </div>
-  `;
-
-else if (msg.type === 'image') {
-    content = `
-        <div class="photo-message" onclick="openPhotoModal('${msg.message}')">
-            <img src="${msg.message}" class="message-photo" loading="lazy">
+    const isSent = msg.sender_id === currentUser.id;
+    
+    let timestamp = msg.timestamp;
+    if (typeof timestamp === 'string') {
+        timestamp = parseInt(timestamp);
+    }
+    
+    const time = new Date(timestamp).toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+    });
+    
+    let content = '';
+    
+    if (msg.type === 'text') {
+        content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
+    } else if (msg.type === 'image') {
+        content = `
+            <div class="photo-message" onclick="openPhotoModal('${msg.message}')">
+                <img src="${msg.message}" class="message-photo" loading="lazy">
+            </div>
+        `;
+    } else {
+        content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
+    }
+    
+    const status = msg.status === 'read' ? '✓✓' : (msg.status === 'sent' ? '✓' : '');
+    
+    return `
+        <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}">
+            ${content}
+            <div class="message-meta">
+                <span class="message-time">${time}</span>
+                ${isSent ? `<span class="message-status">${status}</span>` : ''}
+            </div>
         </div>
     `;
 }
