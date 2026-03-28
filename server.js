@@ -4,7 +4,7 @@ const socketIO = require('socket.io');
 const cors = require('cors');
 const path = require('path');           // ← ОДИН РАЗ
 const fs = require('fs');               // ← ОДИН РАЗ
-
+const multer = require('multer');
 // Создаём папку для фото
 const PHOTOS_DIR = path.join(__dirname, 'public', 'photos');
 if (!fs.existsSync(PHOTOS_DIR)) {
