@@ -61,13 +61,13 @@ async function openChat(userId, username) {
                 </div>
                 
                 <div class="message-input-container">
-  <input type="text" class="message-input" id="message-input" 
-         placeholder="Сообщение" 
-         onkeyup="handleTyping(event)" 
-         onkeypress="if(event.key==='Enter') sendMessage()">
-  <button class="send-btn" onclick="sendMessage()">➤</button>
+    <button class="photo-btn" onclick="selectPhoto()">📷</button>
+    <input type="text" class="message-input" id="message-input" 
+           placeholder="Сообщение" 
+           onkeyup="handleTyping(event)" 
+           onkeypress="if(event.key==='Enter') sendMessage()">
+    <button class="send-btn" onclick="sendMessage()">➤</button>
 </div>
-            </div>
         `;
 
         markMessagesAsRead(userId);
