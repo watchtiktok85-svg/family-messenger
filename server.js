@@ -200,6 +200,7 @@ io.on('connection', (socket) => {
         userId: userId,
         contactId: contactId
       });
+    
     } catch (err) {
       console.error('Ошибка отметки прочитанных:', err);
     }
