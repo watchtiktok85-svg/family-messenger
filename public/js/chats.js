@@ -1,4 +1,3 @@
-// Загрузка списка чатов
 async function loadChats() {
     console.log('📋 Loading chats');
     currentChat = null;
@@ -26,7 +25,7 @@ async function loadChats() {
                         <h2>SharIQ</h2>
                     </div>
                     <div class="header-actions">
-                        <button onclick="searchUser()">🔍</button>
+                        <button onclick="searchUser()" title="Поиск">🔍</button>
                     </div>
                 </div>
                 <div class="chats-list">
@@ -38,28 +37,36 @@ async function loadChats() {
             const usersMap = new Map(users.map(u => [u.id, u]));
             
             for (let chat of chats) {
-    const user = usersMap.get(chat.contact_id) || {};
-    const lastMessage = chat.last_message || 'Нет сообщений';
-    const lastTime = chat.last_timestamp ? formatTime(chat.last_timestamp) : '';
-    
-    html += `
-        <div class="chat-item" onclick="openChat(${chat.contact_id}, '${user.username || 'Пользователь'}')">
-            <div class="chat-avatar ${user.status === 'online' ? 'online' : ''}">
-                ${user.username ? user.username[0].toUpperCase() : '?'}
-            </div>
-            <div class="chat-info">
-                <div class="chat-name">
-                    ${user.username || 'Пользователь'}
-                    <span class="chat-time">${lastTime}</span>
-                </div>
-                <div class="chat-last-message">${escapeHtml(lastMessage)}</div>
-            </div>
-        </div>
-    `;
-}
+                const user = usersMap.get(chat.contact_id) || {};
+                const lastMessage = chat.last_message || 'Нет сообщений';
+                const lastTime = chat.last_timestamp ? formatTime(chat.last_timestamp) : '';
+                
+                html += `
+                    <div class="chat-item" onclick="openChat(${chat.contact_id}, '${user.username || 'Пользователь'}')">
+                        <div class="chat-avatar ${user.status === 'online' ? 'online' : ''}">
+                            ${user.username ? user.username[0].toUpperCase() : '?'}
+                        </div>
+                        <div class="chat-info">
+                            <div class="chat-name">
+                                ${user.username || 'Пользователь'}
+                                <span class="chat-time">${lastTime}</span>
+                            </div>
+                            <div class="chat-last-message">${escapeHtml(lastMessage)}</div>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
         html += `</div></div>${getDrawerHTML()}`;
+        
+        // Добавляем плавающую кнопку перезагрузки
+        html += `
+            <button class="fab-reload" onclick="reloadPage()" title="Обновить">
+                🔄
+            </button>
+        `;
+        
         app.innerHTML = html;
         
         updateDrawerInfo();
@@ -280,8 +287,26 @@ async function changeUsername() {
     }
 }
 
-// Добавляем в глобальные
-window.changeUsername = changeUsername;
+// Перезагрузка страницы
+function reloadPage() {
+    // Показываем уведомление перед перезагрузкой
+    const notification = document.createElement('div');
+    notification.className = 'reload-notification';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span>🔄 Перезагрузка...</span>
+        </div>
+    `;
+    document.body.appendChild(notification);
+    
+    // Перезагружаем страницу через 0.5 секунды
+    setTimeout(() => {
+        window.location.reload();
+    }, 500);
+}
+
+// Делаем функцию глобальной
+window.reloadPage = reloadPage;
 
 // Экспорт функций
 window.loadChats = loadChats;
@@ -290,5 +315,4 @@ window.showProfile = showProfile;
 window.searchUser = searchUser;
 window.getDrawerHTML = getDrawerHTML;
 window.navigateToSettings = navigateToSettings;
-
-// Удаляем проверку settings
+window.changeUsername = changeUsername;
