@@ -78,6 +78,9 @@ async function openChat(userId, username) {
         console.error('❌ Ошибка открытия чата:', error);
         alert('Не удалось загрузить чат. Ошибка: ' + error.message);
     }
+    // Скрываем плавающую кнопку перезагрузки в чате
+const fab = document.querySelector('.fab-reload');
+if (fab) fab.style.display = 'none';
 }
 
 // Функции для меню чата
@@ -151,6 +154,9 @@ async function deleteChat(userId, username) {
         console.error('Error deleting chat:', error);
         alert('Ошибка при удалении чата');
     }
+    // Показываем плавающую кнопку перезагрузки
+const fab = document.querySelector('.fab-reload');
+if (fab) fab.style.display = 'flex';
 }
 
 // Закрыть меню при клике вне его
