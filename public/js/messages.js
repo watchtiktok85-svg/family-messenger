@@ -374,14 +374,10 @@ function selectPhoto() {
     input.click();
 }
 
-// Отправка фото
+// Отправка фото (без индикатора загрузки)
 async function sendPhoto(file) {
     const formData = new FormData();
     formData.append('photo', file);
-    
-    const progressBar = document.getElementById('uploadProgress');
-    const progressFill = document.getElementById('progressFill');
-    if (progressBar) progressBar.style.display = 'block';
     
     try {
         const response = await fetch(`${SERVER_URL}/api/upload-photo`, {
@@ -390,9 +386,6 @@ async function sendPhoto(file) {
         });
         
         const data = await response.json();
-        
-        if (progressBar) progressBar.style.display = 'none';
-        if (progressFill) progressFill.style.width = '0%';
         
         if (response.ok) {
             socket.emit('send_message', {
@@ -409,24 +402,159 @@ async function sendPhoto(file) {
     } catch (error) {
         console.error('Error sending photo:', error);
         alert('Ошибка при отправке фото');
-        if (progressBar) progressBar.style.display = 'none';
     }
 }
 
-// Открыть модальное окно с фото
+// Открыть модальное окно с фото (с зумом и тремя точками)
 function openPhotoModal(imageUrl) {
+    // Удаляем старое модальное окно
+    const oldModal = document.querySelector('.photo-modal');
+    if (oldModal) oldModal.remove();
+    
+    let currentZoom = 1;
+    let translateX = 0;
+    let translateY = 0;
+    let isDragging = false;
+    let startX, startY, startTranslateX, startTranslateY;
+    
     const modal = document.createElement('div');
     modal.className = 'photo-modal';
     modal.innerHTML = `
         <div class="photo-modal-content">
             <button class="photo-modal-close" onclick="this.parentElement.parentElement.remove()">✕</button>
-            <img src="${imageUrl}" class="photo-modal-img">
+            <button class="photo-modal-menu" onclick="togglePhotoMenu()">⋮</button>
+            <div id="photo-menu-dropdown" class="photo-menu-dropdown" style="display:none;">
+                <div onclick="downloadPhoto('${imageUrl}')">💾 Сохранить</div>
+            </div>
+            <div class="photo-image-container">
+                <img src="${imageUrl}" class="photo-modal-img" id="photo-modal-img" style="transform: scale(1) translate(0px, 0px); cursor: zoom-in;">
+            </div>
         </div>
     `;
+    
     modal.onclick = (e) => {
         if (e.target === modal) modal.remove();
     };
+    
     document.body.appendChild(modal);
+    
+    const img = document.getElementById('photo-modal-img');
+    
+    // Зум колесиком мыши
+    img.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        
+        const rect = img.getBoundingClientRect();
+        const mouseX = (e.clientX - rect.left) / rect.width;
+        const mouseY = (e.clientY - rect.top) / rect.height;
+        
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        const newZoom = Math.min(Math.max(currentZoom + delta, 1), 5);
+        
+        if (newZoom !== currentZoom) {
+            const scaleChange = newZoom / currentZoom;
+            translateX = mouseX * rect.width * (1 - scaleChange) + translateX * scaleChange;
+            translateY = mouseY * rect.height * (1 - scaleChange) + translateY * scaleChange;
+            
+            currentZoom = newZoom;
+            img.style.transform = `scale(${currentZoom}) translate(${translateX}px, ${translateY}px)`;
+            img.style.cursor = currentZoom > 1 ? 'grab' : 'zoom-in';
+        }
+    });
+    
+    // Панорамирование мышью
+    img.addEventListener('mousedown', (e) => {
+        if (currentZoom > 1) {
+            e.preventDefault();
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startTranslateX = translateX;
+            startTranslateY = translateY;
+            img.style.cursor = 'grabbing';
+        }
+    });
+    
+    window.addEventListener('mousemove', (e) => {
+        if (isDragging && currentZoom > 1) {
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            translateX = startTranslateX + dx;
+            translateY = startTranslateY + dy;
+            img.style.transform = `scale(${currentZoom}) translate(${translateX}px, ${translateY}px)`;
+        }
+    });
+    
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+        if (img) img.style.cursor = currentZoom > 1 ? 'grab' : 'zoom-in';
+    });
+    
+    // Для телефона: два пальца для зума
+    let initialDistance = 0;
+    let initialZoom = 1;
+    
+    img.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            initialDistance = Math.hypot(dx, dy);
+            initialZoom = currentZoom;
+        } else if (e.touches.length === 1 && currentZoom > 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            startTranslateX = translateX;
+            startTranslateY = translateY;
+        }
+    });
+    
+    img.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault();
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            const distance = Math.hypot(dx, dy);
+            const scale = distance / initialDistance;
+            currentZoom = Math.min(Math.max(initialZoom * scale, 1), 5);
+            img.style.transform = `scale(${currentZoom}) translate(${translateX}px, ${translateY}px)`;
+            img.style.cursor = currentZoom > 1 ? 'grab' : 'zoom-in';
+        } else if (e.touches.length === 1 && isDragging && currentZoom > 1) {
+            e.preventDefault();
+            const dx = e.touches[0].clientX - startX;
+            const dy = e.touches[0].clientY - startY;
+            translateX = startTranslateX + dx;
+            translateY = startTranslateY + dy;
+            img.style.transform = `scale(${currentZoom}) translate(${translateX}px, ${translateY}px)`;
+        }
+    });
+    
+    img.addEventListener('touchend', () => {
+        isDragging = false;
+    });
+}
+
+// Переключение меню фото
+function togglePhotoMenu() {
+    const menu = document.getElementById('photo-menu-dropdown');
+    if (menu) {
+        menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+// Скачать фото
+function downloadPhoto(imageUrl) {
+    const a = document.createElement('a');
+    a.href = imageUrl;
+    a.download = imageUrl.split('/').pop();
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    // Закрываем меню
+    const menu = document.getElementById('photo-menu-dropdown');
+    if (menu) menu.style.display = 'none';
 }
 
 // ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ==========
@@ -443,3 +571,5 @@ window.toggleChatMenu = toggleChatMenu;
 window.showMiniProfile = showMiniProfile;
 window.selectPhoto = selectPhoto;
 window.openPhotoModal = openPhotoModal;
+window.togglePhotoMenu = togglePhotoMenu;
+window.downloadPhoto = downloadPhoto;
