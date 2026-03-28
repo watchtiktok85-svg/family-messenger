@@ -542,3 +542,16 @@ async function logout() {
 if (Notification.permission === 'default') {
     Notification.requestPermission();
 }
+
+// ========== ЗАПУСК ==========
+window.addEventListener('beforeunload', () => {
+    if (currentUser && socket) {
+        navigator.sendBeacon(`${SERVER_URL}/api/auth/logout/${currentUser.id}`, '');
+    }
+    if (statusUpdateInterval) {
+        clearInterval(statusUpdateInterval);
+    }
+});
+
+// Запуск приложения
+document.addEventListener('DOMContentLoaded', init);
