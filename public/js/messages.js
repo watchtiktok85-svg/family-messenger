@@ -178,23 +178,7 @@ function renderMessage(msg) {
   
   if (msg.type === 'text') {
     content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
-  } 
-  else if (msg.type === 'audio') {
-    const duration = msg.duration || 0;
-    const minutes = Math.floor(duration / 60);
-    const seconds = Math.floor(duration % 60);
-    const durationText = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds}с`;
-    
-    content = `
-      <div class="voice-message">
-        <audio controls preload="metadata">
-          <source src="/api/voice/${msg.id}" type="audio/webm">
-          Ваш браузер не поддерживает аудио
-        </audio>
-        <div class="voice-duration">${durationText}</div>
-      </div>
-    `;
-  } 
+  }  
   else {
     content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
   }
@@ -228,8 +212,7 @@ function addMessageToChat(message) {
         message: message.message,
         type: message.type || 'text',
         timestamp: message.timestamp,
-        status: message.status || 'sent',
-        duration: message.duration
+        status: message.status || 'sent'
     };
     
     const messageHtml = renderMessage(msgForRender);
@@ -369,30 +352,6 @@ async function showMiniProfile(userId, username) {
     }
 }
 
-// Получить иконку для типа файла
-function getFileIcon(filename) {
-    if (!filename) return '📎';
-    
-    const ext = filename.split('.').pop().toLowerCase();
-    
-    const icons = {
-        // Документы
-        pdf: '📕', doc: '📘', docx: '📘', txt: '📄',
-        xls: '📊', xlsx: '📊', ppt: '📽️', pptx: '📽️',
-        // Архивы
-        zip: '📦', rar: '📦', '7z': '📦', tar: '📦',
-        // Код
-        js: '📜', html: '🌐', css: '🎨', json: '📋',
-        xml: '📋', php: '🐘', py: '🐍', java: '☕',
-        // Медиа
-        mp3: '🎵', wav: '🎵', mp4: '🎬', avi: '🎬',
-        jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🎭',
-        webp: '🖼️', svg: '🎨'
-    };
-    
-    return icons[ext] || '📎';
-}
-
 // Сделать функции глобальными
 window.openChat = openChat;
 window.sendMessage = sendMessage;
@@ -405,4 +364,3 @@ window.clearChat = clearChat;
 window.deleteChat = deleteChat;
 window.toggleChatMenu = toggleChatMenu;
 window.showMiniProfile = showMiniProfile;
-window.getFileIcon = getFileIcon;
