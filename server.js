@@ -106,7 +106,7 @@ const uploadFile = multer({
         
         if (file.mimetype.startsWith('image/') || 
             file.mimetype.startsWith('video/') || 
-            file.mimetype.startsWith('audio/) ||
+            file.mimetype.startsWith('audio/') ||
             allowedTypes.includes(file.mimetype)) {
             cb(null, true);
         } else {
