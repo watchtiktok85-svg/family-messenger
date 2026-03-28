@@ -63,25 +63,6 @@ function showSettings() {
                     </div>
                 </div>
 
-                <!-- Медиа -->
-                <div class="settings-section">
-                    <h3>Медиа</h3>
-                    <div class="settings-item">
-                        <span>Сохранять в галерею</span>
-                        <label class="switch">
-                            <input type="checkbox" ${appSettings.media.saveToGallery ? 'checked' : ''} onchange="toggleSaveToGallery()">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="settings-item">
-                        <span>Качество фото</span>
-                        <select onchange="setPhotoQuality(this.value)">
-                            <option value="good" ${appSettings.media.photoQuality === 'good' ? 'selected' : ''}>Хорошее</option>
-                            <option value="original" ${appSettings.media.photoQuality === 'original' ? 'selected' : ''}>Оригинал</option>
-                        </select>
-                    </div>
-                </div>
-
                 <!-- Оформление -->
                 <div class="settings-section">
                     <h3>Оформление</h3>
