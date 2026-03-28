@@ -22,12 +22,6 @@ const {
   updateUsername
 } = require('./database');
 
-// ========== ПОДКЛЮЧЕНИЕ К БД ==========
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
-
 // Константы
 const app = express();
 const server = http.createServer(app);
@@ -53,7 +47,13 @@ if (!fs.existsSync('./temp')) {
     console.log('📁 Создана папка temp');
 }
 
-// ========== НАСТРОЙКА MULTER ==========
+// ========== ПОДКЛЮЧЕНИЕ К БД ==========
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+// ========== НАСТРОЙКА MULTER ДЛЯ ФОТО ==========
 const photoStorage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'temp/');
@@ -76,8 +76,53 @@ const uploadPhoto = multer({
     }
 });
 
+// ========== НАСТРОЙКА MULTER ДЛЯ ФАЙЛОВ ==========
+const fileStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'temp/');
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const uploadFile = multer({
+    storage: fileStorage,
+    limits: { fileSize: 50 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = [
+            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+            'video/mp4', 'video/webm', 'video/ogg',
+            'audio/mpeg', 'audio/mp3', 'audio/webm', 'audio/ogg', 'audio/wav',
+            'application/pdf', 'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'text/plain', 'application/zip', 'application/x-rar-compressed'
+        ];
+        
+        if (file.mimetype.startsWith('image/') || 
+            file.mimetype.startsWith('video/') || 
+            file.mimetype.startsWith('audio/) ||
+            allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Неподдерживаемый тип файла'), false);
+        }
+    }
+});
+
 // ========== API МАРШРУТЫ ==========
-// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФОТО (СОХРАНЕНИЕ В БД)
+app.get('/api/status', (req, res) => {
+  res.json({
+    uptime: process.uptime()
+  });
+});
+
+// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФОТО
 app.post('/api/upload-photo', uploadPhoto.single('photo'), async (req, res) => {
     console.log('📸 Получен запрос на загрузку фото');
     
@@ -89,18 +134,15 @@ app.post('/api/upload-photo', uploadPhoto.single('photo'), async (req, res) => {
     console.log(`📁 Файл: ${req.file.originalname}, размер: ${req.file.size}`);
     
     try {
-        // Читаем файл как буфер
         const fileBuffer = fs.readFileSync(req.file.path);
         console.log(`📦 Буфер прочитан, размер: ${fileBuffer.length}`);
         
-        // Сохраняем в БД
         const result = await pool.query(
             `INSERT INTO photos (file_name, file_path, file_size, file_type, file_data, uploaded_at) 
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
             [req.file.originalname, `/api/photo/${Date.now()}`, req.file.size, req.file.mimetype, fileBuffer, Date.now()]
         );
         
-        // Удаляем временный файл
         fs.unlinkSync(req.file.path);
         
         console.log(`✅ Фото сохранено в БД, ID: ${result.rows[0].id}`);
@@ -115,9 +157,49 @@ app.post('/api/upload-photo', uploadPhoto.single('photo'), async (req, res) => {
         
     } catch (err) {
         console.error('❌ Ошибка сохранения фото:', err);
-        // Пытаемся удалить временный файл в случае ошибки
         try { fs.unlinkSync(req.file.path); } catch (e) {}
         res.status(500).json({ error: 'Ошибка сохранения фото: ' + err.message });
+    }
+});
+
+// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФАЙЛОВ
+app.post('/api/upload-file', uploadFile.single('file'), async (req, res) => {
+    console.log('📁 Получен запрос на загрузку файла');
+    
+    if (!req.file) {
+        console.error('❌ Файл не загружен');
+        return res.status(400).json({ error: 'Файл не загружен' });
+    }
+    
+    console.log(`📁 Файл: ${req.file.originalname}, размер: ${req.file.size}, тип: ${req.file.mimetype}`);
+    
+    try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        console.log(`📦 Буфер прочитан, размер: ${fileBuffer.length}`);
+        
+        const result = await pool.query(
+            `INSERT INTO files (file_name, file_path, file_size, file_type, file_data, uploaded_at) 
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+            [req.file.originalname, `/api/file/${Date.now()}`, req.file.size, req.file.mimetype, fileBuffer, Date.now()]
+        );
+        
+        fs.unlinkSync(req.file.path);
+        
+        console.log(`✅ Файл сохранён в БД, ID: ${result.rows[0].id}`);
+        
+        res.json({
+            success: true,
+            fileId: result.rows[0].id,
+            fileUrl: `/api/file/${result.rows[0].id}`,
+            fileName: req.file.originalname,
+            fileSize: req.file.size,
+            fileType: req.file.mimetype
+        });
+        
+    } catch (err) {
+        console.error('❌ Ошибка сохранения файла:', err);
+        try { fs.unlinkSync(req.file.path); } catch (e) {}
+        res.status(500).json({ error: 'Ошибка сохранения файла: ' + err.message });
     }
 });
 
@@ -143,50 +225,6 @@ app.get('/api/photo/:photoId', async (req, res) => {
     } catch (err) {
         console.error('❌ Ошибка получения фото:', err);
         res.status(500).json({ error: 'Ошибка получения фото' });
-    }
-});
-
-// МАРШРУТ ДЛЯ ЗАГРУЗКИ ФАЙЛОВ
-app.post('/api/upload-file', uploadFile.single('file'), async (req, res) => {
-    console.log('📁 Получен запрос на загрузку файла');
-    
-    if (!req.file) {
-        console.error('❌ Файл не загружен');
-        return res.status(400).json({ error: 'Файл не загружен' });
-    }
-    
-    console.log(`📁 Файл: ${req.file.originalname}, размер: ${req.file.size}, тип: ${req.file.mimetype}`);
-    
-    try {
-        // Читаем файл как буфер
-        const fileBuffer = fs.readFileSync(req.file.path);
-        console.log(`📦 Буфер прочитан, размер: ${fileBuffer.length}`);
-        
-        // Сохраняем в БД
-        const result = await pool.query(
-            `INSERT INTO files (file_name, file_path, file_size, file_type, file_data, uploaded_at) 
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-            [req.file.originalname, `/api/file/${Date.now()}`, req.file.size, req.file.mimetype, fileBuffer, Date.now()]
-        );
-        
-        // Удаляем временный файл
-        fs.unlinkSync(req.file.path);
-        
-        console.log(`✅ Файл сохранён в БД, ID: ${result.rows[0].id}`);
-        
-        res.json({
-            success: true,
-            fileId: result.rows[0].id,
-            fileUrl: `/api/file/${result.rows[0].id}`,
-            fileName: req.file.originalname,
-            fileSize: req.file.size,
-            fileType: req.file.mimetype
-        });
-        
-    } catch (err) {
-        console.error('❌ Ошибка сохранения файла:', err);
-        try { fs.unlinkSync(req.file.path); } catch (e) {}
-        res.status(500).json({ error: 'Ошибка сохранения файла: ' + err.message });
     }
 });
 
@@ -277,7 +315,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('send_message', async (data) => {
-    const { senderId, receiverId, message, type = 'text' } = data;
+    const { senderId, receiverId, message, type = 'text', fileId, fileName, fileSize, fileType } = data;
 
     console.log(`📨 Server: sending ${type} from ${senderId} to ${receiverId}`);
 
@@ -286,8 +324,13 @@ io.on('connection', (socket) => {
         senderId,
         receiverId,
         message: message || '',
-        type
+        type,
+        fileId
       });
+
+      messageData.fileName = fileName;
+      messageData.fileSize = fileSize;
+      messageData.fileType = fileType;
 
       const user = await findUserById(senderId);
       if (user) {
