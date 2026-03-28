@@ -374,7 +374,7 @@ function selectPhoto() {
     input.click();
 }
 
-// Отправка фото (без индикатора загрузки)
+// Отправка фото (сохраняется в БД)
 async function sendPhoto(file) {
     const formData = new FormData();
     formData.append('photo', file);
@@ -388,13 +388,15 @@ async function sendPhoto(file) {
         const data = await response.json();
         
         if (response.ok) {
+            // Отправляем сообщение с ссылкой на фото из БД
             socket.emit('send_message', {
                 senderId: currentUser.id,
                 receiverId: currentChat.id,
                 message: data.photoUrl,
                 type: 'image',
                 fileName: file.name,
-                fileSize: file.size
+                fileSize: file.size,
+                photoId: data.photoId
             });
         } else {
             alert('❌ Ошибка при отправке фото');
