@@ -29,12 +29,6 @@ const pool = new Pool({
 });
 
 // Константы
-let SERVER_READY = false;
-const DEPLOY_ID = process.env.RAILWAY_DEPLOYMENT_ID || 
-  process.env.RENDER_DEPLOYMENT_ID || 
-  'dev-' + Date.now();
-const SERVER_START_TIME = Date.now();
-
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
@@ -83,30 +77,6 @@ const uploadPhoto = multer({
 });
 
 // ========== API МАРШРУТЫ ==========
-app.get('/api/status', (req, res) => {
-  res.json({
-    deployId: DEPLOY_ID,
-    startTime: SERVER_START_TIME,
-    uptime: process.uptime()
-  });
-});
-
-app.get('/api/health', (req, res) => {
-  if (SERVER_READY) {
-    res.json({ 
-      status: 'ready', 
-      deployId: DEPLOY_ID,
-      uptime: process.uptime(),
-      startTime: SERVER_START_TIME
-    });
-  } else {
-    res.status(503).json({ 
-      status: 'starting', 
-      message: 'Сервер запускается...' 
-    });
-  }
-});
-
 // МАРШРУТ ДЛЯ ЗАГРУЗКИ ФОТО (СОХРАНЕНИЕ В БД)
 app.post('/api/upload-photo', uploadPhoto.single('photo'), async (req, res) => {
     console.log('📸 Получен запрос на загрузку фото');
@@ -201,7 +171,6 @@ app.use('/api/messages', messageRoutes);
 console.log('🔄 Инициализация PostgreSQL...');
 initializeDatabase().then(() => {
   console.log('✅ База данных PostgreSQL готова');
-  SERVER_READY = true;
 }).catch(err => {
   console.error('❌ Ошибка инициализации БД:', err);
   process.exit(1);
