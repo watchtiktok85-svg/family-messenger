@@ -54,27 +54,33 @@ if (!fs.existsSync(PHOTOS_DIR)) {
   console.log('📁 Создана папка photos');
 }
 
-// ========== НАСТРОЙКА MULTER ДЛЯ ФОТО ==========
+// Создаём папку для временных файлов
+if (!fs.existsSync('./temp')) {
+    fs.mkdirSync('./temp', { recursive: true });
+    console.log('📁 Создана папка temp');
+}
+
+// НАСТРОЙКА MULTER ДЛЯ ФОТО (временное хранилище)
 const photoStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, PHOTOS_DIR);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
+    destination: (req, file, cb) => {
+        cb(null, 'temp/');
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
 });
 
 const uploadPhoto = multer({
-  storage: photoStorage,
-  limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Только изображения'), false);
+    storage: photoStorage,
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Только изображения'), false);
+        }
     }
-  }
 });
 
 // ========== API МАРШРУТЫ ==========
@@ -104,13 +110,19 @@ app.get('/api/health', (req, res) => {
 
 // МАРШРУТ ДЛЯ ЗАГРУЗКИ ФОТО (СОХРАНЕНИЕ В БД)
 app.post('/api/upload-photo', uploadPhoto.single('photo'), async (req, res) => {
+    console.log('📸 Получен запрос на загрузку фото');
+    
     if (!req.file) {
+        console.error('❌ Файл не загружен');
         return res.status(400).json({ error: 'Файл не загружен' });
     }
+    
+    console.log(`📁 Файл: ${req.file.originalname}, размер: ${req.file.size}`);
     
     try {
         // Читаем файл как буфер
         const fileBuffer = fs.readFileSync(req.file.path);
+        console.log(`📦 Буфер прочитан, размер: ${fileBuffer.length}`);
         
         // Сохраняем в БД
         const result = await pool.query(
@@ -134,8 +146,9 @@ app.post('/api/upload-photo', uploadPhoto.single('photo'), async (req, res) => {
         
     } catch (err) {
         console.error('❌ Ошибка сохранения фото:', err);
+        // Пытаемся удалить временный файл в случае ошибки
         try { fs.unlinkSync(req.file.path); } catch (e) {}
-        res.status(500).json({ error: 'Ошибка сохранения фото' });
+        res.status(500).json({ error: 'Ошибка сохранения фото: ' + err.message });
     }
 });
 
