@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SharIQ - Умный мессенджер</title>
+    
+    <!-- PWA мета-теги -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4a6fa5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SharIQ">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -42,5 +51,20 @@
     <script src="js/messages.js"></script>
     <script src="js/file.js"></script>
     <script src="js/settings.js"></script>
+    
+    <!-- Регистрация Service Worker для PWA -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registered:', registration);
+                    })
+                    .catch(error => {
+                        console.log('❌ Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
