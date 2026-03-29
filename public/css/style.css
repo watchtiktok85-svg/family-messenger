@@ -1596,3 +1596,15 @@ input:checked + .slider:before {
 .typing-indicator {
     transition: opacity 0.2s;
 }
+
+/* Скрываем адресную строку при установке */
+@media (display-mode: standalone) {
+    body {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    
+    .header {
+        padding-top: max(15px, env(safe-area-inset-top));
+    }
+}
