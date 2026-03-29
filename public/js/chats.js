@@ -160,7 +160,7 @@ async function showProfile() {
         app.innerHTML = `
             <div class="chats-screen">
                 <div class="header">
-                    <button class="menu-btn" onclick="openDrawer()">☰</button>
+                    <button class="back-btn" onclick="loadChats()">←</button>
                     <h2>Профиль</h2>
                 </div>
                 <div style="padding:20px;">
@@ -364,9 +364,12 @@ async function uploadAvatar(file) {
         
         if (response.ok) {
             alert('✅ Аватарка обновлена!');
-            // Обновляем интерфейс
-            updateAvatarInUI();
-            loadChats(); // Перезагружаем список чатов
+            
+            // Обновляем аватарку везде
+            await updateAvatarEverywhere();
+            
+            // Обновляем страницу профиля
+            showProfile();
         } else {
             alert('❌ Ошибка: ' + data.error);
         }
@@ -404,13 +407,24 @@ async function removeAvatar() {
         
         if (response.ok) {
             alert('✅ Аватарка удалена');
-            // Сбрасываем отображение
-            const avatarElement = document.querySelector('.drawer-avatar');
-            if (avatarElement) {
-                avatarElement.textContent = currentUser.username[0].toUpperCase();
-                avatarElement.style.backgroundImage = '';
-                avatarElement.style.color = '';
+            
+            // Сбрасываем аватарку на букву везде
+            const drawerAvatar = document.querySelector('.drawer-avatar');
+            if (drawerAvatar) {
+                drawerAvatar.style.backgroundImage = '';
+                drawerAvatar.textContent = currentUser.username[0].toUpperCase();
+                drawerAvatar.style.color = '';
             }
+            
+            const chatHeaderAvatar = document.querySelector('.chat-header-avatar');
+            if (chatHeaderAvatar && currentChat && currentChat.id === currentUser.id) {
+                chatHeaderAvatar.style.backgroundImage = '';
+                chatHeaderAvatar.textContent = currentUser.username[0].toUpperCase();
+                chatHeaderAvatar.style.color = '';
+            }
+            
+            // Обновляем страницу профиля и список чатов
+            showProfile();
             loadChats();
         } else {
             alert('❌ Ошибка: ' + data.error);
@@ -419,6 +433,42 @@ async function removeAvatar() {
         console.error('Error removing avatar:', error);
         alert('Ошибка при удалении аватарки');
     }
+}
+
+// Обновить аватарку во всех местах
+async function updateAvatarEverywhere() {
+    // 1. Обновляем в боковой панели (drawer)
+    const drawerAvatar = document.querySelector('.drawer-avatar');
+    if (drawerAvatar) {
+        drawerAvatar.style.backgroundImage = `url('${SERVER_URL}/api/avatar/${currentUser.id}?t=${Date.now()}')`;
+        drawerAvatar.style.backgroundSize = 'cover';
+        drawerAvatar.style.backgroundPosition = 'center';
+        drawerAvatar.style.color = 'transparent';
+        drawerAvatar.textContent = '';
+    }
+    
+    // 2. Обновляем в шапке чата (если чат открыт)
+    const chatHeaderAvatar = document.querySelector('.chat-header-avatar');
+    if (chatHeaderAvatar && currentChat && currentChat.id === currentUser.id) {
+        chatHeaderAvatar.style.backgroundImage = `url('${SERVER_URL}/api/avatar/${currentUser.id}?t=${Date.now()}')`;
+        chatHeaderAvatar.style.backgroundSize = 'cover';
+        chatHeaderAvatar.style.backgroundPosition = 'center';
+        chatHeaderAvatar.style.color = 'transparent';
+        chatHeaderAvatar.textContent = '';
+    }
+    
+    // 3. Обновляем в мини-профиле (если открыт)
+    const miniProfileAvatar = document.querySelector('.profile-avatar-large');
+    if (miniProfileAvatar) {
+        miniProfileAvatar.style.backgroundImage = `url('${SERVER_URL}/api/avatar/${currentUser.id}?t=${Date.now()}')`;
+        miniProfileAvatar.style.backgroundSize = 'cover';
+        miniProfileAvatar.style.backgroundPosition = 'center';
+        miniProfileAvatar.style.color = 'transparent';
+        miniProfileAvatar.textContent = '';
+    }
+    
+    // 4. Перезагружаем список чатов (обновятся аватарки в списке)
+    loadChats();
 }
 
 // Делаем функцию глобальной
