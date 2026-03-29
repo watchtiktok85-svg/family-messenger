@@ -89,55 +89,73 @@ const fileStorage = multer.diskStorage({
 
 const uploadFile = multer({
     storage: fileStorage,
-    limits: { fileSize: 50 * 1024 * 1024 },
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB для APK/EXE
     fileFilter: (req, file, cb) => {
-        // Расширяем список разрешённых MIME-типов
+        // Расширенный список MIME-типов
         const allowedTypes = [
             // Изображения
-            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml',
+            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml', 'image/x-icon',
             // Видео
             'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska',
             // Аудио
             'audio/mpeg', 'audio/mp3', 'audio/webm', 'audio/ogg', 'audio/wav', 'audio/x-m4a', 'audio/flac',
             // Документы
             'application/pdf', 'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
-            'application/vnd.ms-excel', // .xls
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-            'application/vnd.ms-powerpoint', // .ppt
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
-            // Текст и архивы
-            'text/plain', 'text/html', 'text/css', 'text/javascript',
-            'application/json', 'application/xml',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            // Текст и код
+            'text/plain', 'text/html', 'text/css', 'text/javascript', 'text/xml',
+            'application/json', 'application/xml', 'application/javascript',
+            // Архивы
             'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed',
-            'application/x-7z-compressed', 'application/x-tar',
-            // Другое
-            'application/octet-stream'
+            'application/x-7z-compressed', 'application/x-tar', 'application/gzip',
+            // ИСПОЛНЯЕМЫЕ ФАЙЛЫ
+            'application/vnd.android.package-archive',  // APK
+            'application/x-msdownload',                 // EXE, DLL
+            'application/x-msi',                        // MSI
+            'application/x-msdos-program',              // COM, EXE
+            'application/x-executable',                 // ELF, EXE
+            'application/x-ms-shortcut',                // LNK
+            'application/x-bat',                        // BAT
+            'application/x-ms-dos-executable',          // EXE
+            'application/octet-stream'                  // Бинарные файлы (APK, EXE часто приходят с этим типом)
         ];
         
-        // Проверяем по MIME-типу
+        // Расширения файлов для дополнительной проверки
+        const allowedExts = [
+            // Изображения
+            '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg', '.ico',
+            // Видео
+            '.mp4', '.webm', '.avi', '.mov', '.mkv', '.flv', '.m4v',
+            // Аудио
+            '.mp3', '.wav', '.ogg', '.m4a', '.flac', '.aac',
+            // Документы
+            '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.odt', '.ods',
+            // Текст и код
+            '.txt', '.html', '.htm', '.css', '.js', '.json', '.xml', '.log', '.md',
+            // Архивы
+            '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2',
+            // ИСПОЛНЯЕМЫЕ ФАЙЛЫ (APK, EXE и др.)
+            '.apk', '.exe', '.msi', '.bat', '.cmd', '.com', '.scr', '.dll', '.sys', '.bin'
+        ];
+        
+        // Проверка по MIME-типу
         if (file.mimetype.startsWith('image/') || 
             file.mimetype.startsWith('video/') || 
             file.mimetype.startsWith('audio/') ||
             allowedTypes.includes(file.mimetype)) {
             cb(null, true);
         } 
-        // Если MIME-тип не определён, проверяем по расширению
+        // Если MIME не подошёл, проверяем по расширению
         else {
             const ext = path.extname(file.originalname).toLowerCase();
-            const allowedExts = [
-                '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg',
-                '.mp4', '.webm', '.avi', '.mov', '.mkv',
-                '.mp3', '.wav', '.ogg', '.m4a', '.flac',
-                '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-                '.txt', '.html', '.css', '.js', '.json', '.xml',
-                '.zip', '.rar', '.7z', '.tar', '.gz'
-            ];
-            
             if (allowedExts.includes(ext)) {
                 cb(null, true);
             } else {
-                cb(new Error('Неподдерживаемый тип файла: ' + file.originalname), false);
+                cb(new Error(`Неподдерживаемый тип файла: ${file.originalname} (${file.mimetype || 'unknown'})`), false);
             }
         }
     }
@@ -200,12 +218,14 @@ app.get('/api/file/:fileId', async (req, res) => {
         
         const file = result.rows[0];
         
-        // Кодируем имя файла для корректного отображения кириллицы
-        const encodedFileName = encodeURIComponent(file.file_name);
+        // ПРАВИЛЬНАЯ КОДИРОВКА ДЛЯ КИРИЛЛИЦЫ
+        const fileName = file.file_name;
+        const encodedFileName = encodeURIComponent(fileName).replace(/['()]/g, escape).replace(/\*/g, '%2A');
         
-        res.set('Content-Type', file.file_type);
-        res.set('Content-Disposition', `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`);
-        res.set('Content-Length', file.file_data.length);
+        // Устанавливаем заголовки для правильного скачивания
+        res.setHeader('Content-Type', file.file_type);
+        res.setHeader('Content-Disposition', `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`);
+        res.setHeader('Content-Length', file.file_data.length);
         res.send(file.file_data);
         
     } catch (err) {
