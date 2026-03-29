@@ -1518,3 +1518,33 @@ input:checked + .slider:before {
     width: 0%;
     transition: width 0.3s;
 }
+
+/* Аватарка с картинкой */
+.drawer-avatar {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* Кнопка смены аватарки */
+.avatar-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.avatar-btn:hover {
+    background: var(--accent-dark);
+}
+
+.danger-btn {
+    background: #f44336;
+}
+
+.danger-btn:hover {
+    background: #d32f2f;
+}
