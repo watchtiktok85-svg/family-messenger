@@ -202,8 +202,13 @@ async function updateUserStatus(userId, status) {
 }
 
 async function getUsers() {
-  const result = await pool.query('SELECT id, phone, username, avatar, status, last_seen FROM users');
-  return result.rows;
+    const result = await pool.query(`
+        SELECT u.id, u.phone, u.username, u.avatar, u.status, u.last_seen,
+               CASE WHEN a.id IS NOT NULL THEN true ELSE false END as has_avatar
+        FROM users u
+        LEFT JOIN avatars a ON u.id = a.user_id
+    `);
+    return result.rows;
 }
 
 // Функции для работы с сообщениями
