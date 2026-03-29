@@ -1596,3 +1596,88 @@ input:checked + .slider:before {
 .typing-indicator {
     transition: opacity 0.2s;
 }
+
+/* Реакции */
+.message-reactions {
+    margin-top: 5px;
+}
+
+.reactions-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.reaction-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: var(--bg-primary);
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.reaction-badge:hover {
+    background: var(--border);
+    transform: scale(1.05);
+}
+
+.reaction-badge.my-reaction {
+    background: var(--accent);
+    color: white;
+}
+
+.reaction-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.message:hover .reaction-btn {
+    opacity: 1;
+}
+
+/* Палетка выбора реакций */
+.reaction-picker {
+    background: var(--bg-secondary);
+    border-radius: 30px;
+    padding: 8px 12px;
+    display: flex;
+    gap: 8px;
+    box-shadow: 0 4px 15px var(--shadow);
+    z-index: 1000;
+    animation: fadeInScale 0.2s;
+}
+
+.reaction-option {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 30px;
+    transition: transform 0.2s;
+}
+
+.reaction-option:hover {
+    transform: scale(1.2);
+    background: var(--bg-primary);
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
