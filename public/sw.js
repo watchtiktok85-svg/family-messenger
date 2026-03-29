@@ -1,6 +1,6 @@
 const CACHE_NAME = 'shariq-v1';
 
-// Файлы для кэширования
+// Файлы для кэширования (только GET запросы)
 const urlsToCache = [
   '/',
   '/index.html',
@@ -16,17 +16,23 @@ const urlsToCache = [
 
 // Установка Service Worker
 self.addEventListener('install', event => {
+  console.log('Service Worker installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Cache opened');
         return cache.addAll(urlsToCache);
       })
+      .catch(err => {
+        console.error('Cache addAll error:', err);
+      })
   );
+  self.skipWaiting();
 });
 
 // Активация Service Worker
 self.addEventListener('activate', event => {
+  console.log('Service Worker activating...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -39,10 +45,21 @@ self.addEventListener('activate', event => {
       );
     })
   );
+  return self.clients.claim();
 });
 
 // Перехват запросов
 self.addEventListener('fetch', event => {
+  // Кэшируем только GET запросы
+  if (event.request.method !== 'GET') {
+    return;
+  }
+  
+  // Не кэшируем API запросы
+  if (event.request.url.includes('/api/')) {
+    return;
+  }
+  
   event.respondWith(
     caches.match(event.request)
       .then(response => {
@@ -53,16 +70,27 @@ self.addEventListener('fetch', event => {
         
         // Иначе запрашиваем с сети
         return fetch(event.request).then(response => {
-          // Не кэшируем API запросы
-          if (!event.request.url.includes('/api/')) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
+          // Проверяем, что ответ валидный
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
           }
+          
+          // Кэшируем только GET запросы
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME)
+            .then(cache => {
+              cache.put(event.request, responseToCache);
+            })
+            .catch(err => {
+              console.error('Cache put error:', err);
+            });
           return response;
         });
+      })
+      .catch(err => {
+        console.error('Fetch error:', err);
+        // Возвращаем офлайн страницу если нужно
+        return new Response('Network error', { status: 404 });
       })
   );
 });
