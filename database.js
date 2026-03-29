@@ -117,6 +117,21 @@ await pool.query(`
 `);
 console.log('✅ Таблица avatars готова');
   
+  // Таблица реакций на сообщения
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS message_reactions (
+        id SERIAL PRIMARY KEY,
+        message_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        reaction VARCHAR(10) NOT NULL,
+        created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()),
+        UNIQUE(message_id, user_id),
+        FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+`);
+console.log('✅ Таблица message_reactions готова');
+  
   // Индексы
   await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id)');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id)');
@@ -377,6 +392,52 @@ async function deleteAvatar(userId) {
     await pool.query('DELETE FROM avatars WHERE user_id = $1', [userId]);
 }
 
+// Добавить или обновить реакцию
+async function addReaction(messageId, userId, reaction) {
+    const result = await pool.query(
+        `INSERT INTO message_reactions (message_id, user_id, reaction, created_at) 
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (message_id, user_id) 
+         DO UPDATE SET reaction = $3, created_at = $4
+         RETURNING *`,
+        [messageId, userId, reaction, Date.now()]
+    );
+    return result.rows[0];
+}
+
+// Удалить реакцию
+async function removeReaction(messageId, userId) {
+    await pool.query(
+        'DELETE FROM message_reactions WHERE message_id = $1 AND user_id = $2',
+        [messageId, userId]
+    );
+}
+
+// Получить все реакции для сообщения
+async function getReactionsForMessage(messageId) {
+    const result = await pool.query(
+        `SELECT r.reaction, r.user_id, u.username 
+         FROM message_reactions r
+         JOIN users u ON r.user_id = u.id
+         WHERE r.message_id = $1`,
+        [messageId]
+    );
+    return result.rows;
+}
+
+// Получить реакции для нескольких сообщений
+async function getReactionsForMessages(messageIds) {
+    if (!messageIds || messageIds.length === 0) return [];
+    const result = await pool.query(
+        `SELECT r.message_id, r.reaction, r.user_id, u.username 
+         FROM message_reactions r
+         JOIN users u ON r.user_id = u.id
+         WHERE r.message_id = ANY($1::int[])`,
+        [messageIds]
+    );
+    return result.rows;
+}
+
 module.exports = {
   initializeDatabase,
   findUserByPhone,
@@ -393,5 +454,9 @@ module.exports = {
   cleanupOldMessages,
   saveAvatar,
   getAvatar,
-  deleteAvatar
+  deleteAvatar,
+  addReaction,
+  removeReaction,
+  getReactionsForMessage,
+  getReactionsForMessages
 };
