@@ -471,6 +471,43 @@ async function updateAvatarEverywhere() {
     loadChats();
 }
 
+function updateDrawerInfo() {
+    if (!currentUser) return;
+    
+    const avatarEl = document.getElementById('drawer-avatar');
+    const nameEl = document.getElementById('drawer-name');
+    const phoneEl = document.getElementById('drawer-phone');
+    
+    if (nameEl) nameEl.textContent = currentUser.username;
+    if (phoneEl) phoneEl.textContent = currentUser.phone;
+    
+    // Загружаем аватарку для боковой панели
+    if (avatarEl) {
+        fetch(`${SERVER_URL}/api/avatar/${currentUser.id}`)
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('No avatar');
+                }
+            })
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                avatarEl.style.backgroundImage = `url('${url}')`;
+                avatarEl.style.backgroundSize = 'cover';
+                avatarEl.style.backgroundPosition = 'center';
+                avatarEl.style.color = 'transparent';
+                avatarEl.textContent = '';
+            })
+            .catch(() => {
+                // Если нет аватарки, показываем букву
+                avatarEl.style.backgroundImage = '';
+                avatarEl.style.color = '';
+                avatarEl.textContent = currentUser.username[0].toUpperCase();
+            });
+    }
+}
+
 // Делаем функцию глобальной
 window.reloadPage = reloadPage;
 
