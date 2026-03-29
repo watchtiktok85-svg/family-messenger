@@ -234,6 +234,106 @@ app.get('/api/file/:fileId', async (req, res) => {
     }
 });
 
+// ========== МАРШРУТЫ ДЛЯ АВАТАРОК ==========
+
+// Настройка multer для аватарок (храним в памяти, не на диске)
+const uploadAvatar = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Только изображения'), false);
+        }
+    }
+});
+
+// Загрузка аватарки
+app.post('/api/avatar/upload', uploadAvatar.single('avatar'), async (req, res) => {
+    console.log('🖼️ Получен запрос на загрузку аватарки');
+    
+    if (!req.file) {
+        console.error('❌ Файл не загружен');
+        return res.status(400).json({ error: 'Файл не загружен' });
+    }
+    
+    const { userId } = req.body;
+    
+    if (!userId) {
+        console.error('❌ userId не указан');
+        return res.status(400).json({ error: 'userId не указан' });
+    }
+    
+    console.log(`📁 Аватарка для пользователя ${userId}, размер: ${req.file.size}`);
+    
+    try {
+        // Проверяем, есть ли уже аватарка у пользователя
+        const existing = await pool.query('SELECT id FROM avatars WHERE user_id = $1', [userId]);
+        
+        if (existing.rows.length > 0) {
+            // Обновляем существующую
+            await pool.query(
+                'UPDATE avatars SET file_data = $1, file_type = $2, updated_at = $3 WHERE user_id = $4',
+                [req.file.buffer, req.file.mimetype, Date.now(), userId]
+            );
+            console.log(`✅ Аватарка обновлена для пользователя ${userId}`);
+        } else {
+            // Создаём новую
+            await pool.query(
+                'INSERT INTO avatars (user_id, file_data, file_type, updated_at) VALUES ($1, $2, $3, $4)',
+                [userId, req.file.buffer, req.file.mimetype, Date.now()]
+            );
+            console.log(`✅ Аватарка создана для пользователя ${userId}`);
+        }
+        
+        res.json({
+            success: true,
+            message: 'Аватарка обновлена'
+        });
+    } catch (err) {
+        console.error('❌ Ошибка сохранения аватарки:', err);
+        res.status(500).json({ error: 'Ошибка сохранения аватарки' });
+    }
+});
+
+// Получение аватарки
+app.get('/api/avatar/:userId', async (req, res) => {
+    const { userId } = req.params;
+    
+    try {
+        const result = await pool.query(
+            'SELECT file_data, file_type FROM avatars WHERE user_id = $1',
+            [userId]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Аватарка не найдена' });
+        }
+        
+        const avatar = result.rows[0];
+        res.set('Content-Type', avatar.file_type);
+        res.send(avatar.file_data);
+    } catch (err) {
+        console.error('❌ Ошибка получения аватарки:', err);
+        res.status(500).json({ error: 'Ошибка получения аватарки' });
+    }
+});
+
+// Удаление аватарки (сброс на дефолт)
+app.delete('/api/avatar/:userId', async (req, res) => {
+    const { userId } = req.params;
+    
+    try {
+        await pool.query('DELETE FROM avatars WHERE user_id = $1', [userId]);
+        console.log(`✅ Аватарка удалена для пользователя ${userId}`);
+        res.json({ success: true, message: 'Аватарка удалена' });
+    } catch (err) {
+        console.error('❌ Ошибка удаления аватарки:', err);
+        res.status(500).json({ error: 'Ошибка удаления аватарки' });
+    }
+});
+
 // ========== API МАРШРУТЫ ==========
 app.get('/api/status', (req, res) => {
   res.json({
