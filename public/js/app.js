@@ -317,7 +317,6 @@ socket.on('new_message', (message) => {
     });
     
     socket.on('user_typing', (data) => {
-    console.log('✏️ Печатает:', data);
     if (currentChat && data.userId === currentChat.id) {
         const typingDiv = document.getElementById('typing-indicator');
         const statusDiv = document.getElementById('chat-status');
