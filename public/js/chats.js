@@ -43,9 +43,9 @@ async function loadChats() {
                 
                 html += `
                     <div class="chat-item" onclick="openChat(${chat.contact_id}, '${user.username || 'Пользователь'}')">
-                        <div class="chat-avatar ${user.status === 'online' ? 'online' : ''}">
-                            ${user.username ? user.username[0].toUpperCase() : '?'}
-                        </div>
+                        <div class="chat-avatar ${user.status === 'online' ? 'online' : ''}" style="background-image: url('${SERVER_URL}/api/avatar/${user.id}'); background-size: cover; background-position: center;">
+    ${!user.has_avatar ? (user.username ? user.username[0].toUpperCase() : '?') : ''}
+</div>
                         <div class="chat-info">
                             <div class="chat-name">
                                 ${user.username || 'Пользователь'}
@@ -141,6 +141,22 @@ async function showProfile() {
     try {
         const response = await fetch(`/api/auth/${currentUser.id}`);
         const user = await response.json();
+        
+        // Проверяем, есть ли аватарка
+        let avatarHtml = '';
+        try {
+            const avatarResponse = await fetch(`${SERVER_URL}/api/avatar/${currentUser.id}`);
+            if (avatarResponse.ok) {
+                const avatarBlob = await avatarResponse.blob();
+                const avatarUrl = URL.createObjectURL(avatarBlob);
+                avatarHtml = `<div style="width:100px;height:100px;border-radius:50%;margin:0 auto 20px;background-image:url('${avatarUrl}');background-size:cover;background-position:center;border:3px solid var(--accent);"></div>`;
+            } else {
+                avatarHtml = `<div style="width:100px;height:100px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:48px;color:white;">${user.username[0].toUpperCase()}</div>`;
+            }
+        } catch (e) {
+            avatarHtml = `<div style="width:100px;height:100px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:48px;color:white;">${user.username[0].toUpperCase()}</div>`;
+        }
+        
         app.innerHTML = `
             <div class="chats-screen">
                 <div class="header">
@@ -148,19 +164,23 @@ async function showProfile() {
                     <h2>Профиль</h2>
                 </div>
                 <div style="padding:20px;">
-                    <div style="text-align:center; margin:30px;">
-                        <div style="width:100px;height:100px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:48px;color:white;">
-                            ${user.username[0].toUpperCase()}
-                        </div>
+                    <div style="text-align:center;">
+                        ${avatarHtml}
                         <h2>${user.username}</h2>
                         <p>${user.phone}</p>
                         <p>Статус: ${user.status === 'online' ? '🟢 онлайн' : '⚪ офлайн'}</p>
                     </div>
-                    <div style="display:flex; gap:10px; margin-top:20px;">
-                        <button onclick="changeUsername()" style="flex:1; padding:15px; background:var(--accent); color:white; border:none; border-radius:12px;">
+                    <div style="display:flex; gap:10px; margin-top:20px; flex-wrap: wrap;">
+                        <button onclick="selectAvatar()" style="flex:1; padding:15px; background:var(--accent); color:white; border:none; border-radius:12px; min-width:120px;">
+                            🖼️ Сменить аватар
+                        </button>
+                        <button onclick="removeAvatar()" style="flex:1; padding:15px; background:#f44336; color:white; border:none; border-radius:12px; min-width:120px;">
+                            🗑️ Удалить аватар
+                        </button>
+                        <button onclick="changeUsername()" style="flex:1; padding:15px; background:var(--accent); color:white; border:none; border-radius:12px; min-width:120px;">
                             ✏️ Изменить ник
                         </button>
-                        <button onclick="loadChats()" style="flex:1; padding:15px; background:var(--text-secondary); color:white; border:none; border-radius:12px;">
+                        <button onclick="loadChats()" style="flex:1; padding:15px; background:var(--text-secondary); color:white; border:none; border-radius:12px; min-width:120px;">
                             ← Назад
                         </button>
                     </div>
@@ -412,3 +432,6 @@ window.searchUser = searchUser;
 window.getDrawerHTML = getDrawerHTML;
 window.navigateToSettings = navigateToSettings;
 window.changeUsername = changeUsername;
+window.selectAvatar = selectAvatar;
+window.removeAvatar = removeAvatar;
+window.uploadAvatar = uploadAvatar;
