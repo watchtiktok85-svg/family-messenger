@@ -512,6 +512,29 @@ app.delete('/api/messages/reaction', async (req, res) => {
     }
 });
 
+// Получить реакции для нескольких сообщений (batch)
+app.post('/api/messages/reactions/batch', async (req, res) => {
+    const { messageIds } = req.body;
+    
+    if (!messageIds || !Array.isArray(messageIds) || messageIds.length === 0) {
+        return res.json([]);
+    }
+    
+    try {
+        const result = await pool.query(
+            `SELECT r.message_id, r.reaction, r.user_id, u.username 
+             FROM message_reactions r
+             JOIN users u ON r.user_id = u.id
+             WHERE r.message_id = ANY($1::int[])`,
+            [messageIds]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error('❌ Ошибка получения реакций:', err);
+        res.status(500).json({ error: 'Ошибка получения реакций' });
+    }
+});
+
 // Подключаем маршруты
 const authRoutes = require('./routes/auth')({ 
     findUserByPhone, 
