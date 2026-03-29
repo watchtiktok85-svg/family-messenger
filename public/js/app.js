@@ -393,6 +393,18 @@ socket.on('chat_deleted_by_other', (data) => {
     }
 });
 
+socket.on('reaction_updated', (data) => {
+    console.log('📨 Reaction updated:', data);
+    if (data.messageId && data.reactions) {
+        // Обновляем кэш
+        reactionsCache[data.messageId] = data.reactions;
+        // Обновляем отображение
+        if (typeof updateReactionsDisplay === 'function') {
+            updateReactionsDisplay(data.messageId, data.reactions);
+        }
+    }
+});
+    
 }
 
 function setupStatusUpdates() {
