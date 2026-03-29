@@ -91,26 +91,54 @@ const uploadFile = multer({
     storage: fileStorage,
     limits: { fileSize: 50 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
+        // Расширяем список разрешённых MIME-типов
         const allowedTypes = [
-            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-            'video/mp4', 'video/webm', 'video/ogg',
-            'audio/mpeg', 'audio/mp3', 'audio/webm', 'audio/ogg', 'audio/wav',
+            // Изображения
+            'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml',
+            // Видео
+            'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska',
+            // Аудио
+            'audio/mpeg', 'audio/mp3', 'audio/webm', 'audio/ogg', 'audio/wav', 'audio/x-m4a', 'audio/flac',
+            // Документы
             'application/pdf', 'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/vnd.ms-excel',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.ms-powerpoint',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'text/plain', 'application/zip', 'application/x-rar-compressed'
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+            'application/vnd.ms-excel', // .xls
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+            'application/vnd.ms-powerpoint', // .ppt
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+            // Текст и архивы
+            'text/plain', 'text/html', 'text/css', 'text/javascript',
+            'application/json', 'application/xml',
+            'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed',
+            'application/x-7z-compressed', 'application/x-tar',
+            // Другое
+            'application/octet-stream'
         ];
         
+        // Проверяем по MIME-типу
         if (file.mimetype.startsWith('image/') || 
             file.mimetype.startsWith('video/') || 
             file.mimetype.startsWith('audio/') ||
             allowedTypes.includes(file.mimetype)) {
             cb(null, true);
-        } else {
-            cb(new Error('Неподдерживаемый тип файла'), false);
+        } 
+        // Если MIME-тип не определён, проверяем по расширению
+        else {
+            const ext = path.extname(file.originalname).toLowerCase();
+            const allowedExts = [
+                '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg',
+                '.mp4', '.webm', '.avi', '.mov', '.mkv',
+                '.mp3', '.wav', '.ogg', '.m4a', '.flac',
+                '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+                '.txt', '.html', '.css', '.js', '.json', '.xml',
+                '.zip', '.rar', '.7z', '.tar', '.gz'
+            ];
+            
+            if (allowedExts.includes(ext)) {
+                cb(null, true);
+            } else {
+                cb(new Error('Неподдерживаемый тип файла: ' + file.originalname), false);
+            }
         }
     }
 });
