@@ -317,11 +317,22 @@ socket.on('new_message', (message) => {
     });
     
     socket.on('user_typing', (data) => {
-        if (currentChat && data.userId === currentChat.id) {
-            const typingDiv = document.getElementById('typing-indicator');
-            if (typingDiv) typingDiv.style.display = data.isTyping ? 'block' : 'none';
+    console.log('✏️ Печатает:', data);
+    if (currentChat && data.userId === currentChat.id) {
+        const typingDiv = document.getElementById('typing-indicator');
+        const statusDiv = document.getElementById('chat-status');
+        
+        if (typingDiv) {
+            if (data.isTyping) {
+                typingDiv.style.display = 'block';
+                if (statusDiv) statusDiv.style.display = 'none';
+            } else {
+                typingDiv.style.display = 'none';
+                if (statusDiv) statusDiv.style.display = 'block';
+            }
         }
-    });
+    }
+});
     
     socket.on('user_status', (data) => {
         updateUserStatus(data.userId, data.status);
