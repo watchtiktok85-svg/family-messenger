@@ -373,12 +373,25 @@ async function showMiniProfile(userId, username) {
             if (e.target === modal) modal.remove();
         };
         
+        // Проверяем, есть ли аватарка
+        let avatarHtml = '';
+        try {
+            const avatarResponse = await fetch(`${SERVER_URL}/api/avatar/${userId}`);
+            if (avatarResponse.ok) {
+                const avatarBlob = await avatarResponse.blob();
+                const avatarUrl = URL.createObjectURL(avatarBlob);
+                avatarHtml = `<div class="profile-avatar-large" style="background-image: url('${avatarUrl}'); background-size: cover; background-position: center;"></div>`;
+            } else {
+                avatarHtml = `<div class="profile-avatar-large">${user.username[0].toUpperCase()}</div>`;
+            }
+        } catch (e) {
+            avatarHtml = `<div class="profile-avatar-large">${user.username[0].toUpperCase()}</div>`;
+        }
+        
         modal.innerHTML = `
             <div class="profile-modal-content">
                 <button class="profile-modal-close" onclick="this.closest('.profile-modal').remove()">✕</button>
-                <div class="profile-avatar-large">
-                    ${user.username[0].toUpperCase()}
-                </div>
+                ${avatarHtml}
                 <div class="profile-info">
                     <h2>${user.username}</h2>
                     <p class="profile-phone">${user.phone}</p>
