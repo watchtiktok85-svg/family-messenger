@@ -21,6 +21,8 @@ const {
   deleteMessagesBetweenUsers,
   updateUsername
 } = require('./database');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 // Константы
 const app = express();
@@ -33,13 +35,108 @@ const io = socketIO(server, {
   }
 });
 
-// Middleware
-app.use(cors({
-  origin: '*',
-  credentials: true
+// ========== HELMET - ЗАЩИТНЫЕ ЗАГОЛОВКИ ==========
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.socket.io"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "blob:"],
+            connectSrc: ["'self'", "wss:", "https:"],
+            fontSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            mediaSrc: ["'self'"],
+            frameSrc: ["'none'"],
+        },
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+// ========== CORS - РАЗРЕШЁННЫЕ ДОМЕНЫ ==========
+const allowedOrigins = [
+    'https://family-messenger-production-e1a8.up.railway.app',
+    'http://localhost:3000',
+    'http://localhost:5500',
+    'https://shariq-messenger.up.railway.app'
+];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        // Разрешаем запросы без origin (например, от мобильных приложений)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.log(`❌ CORS blocked: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// ========== RATE LIMITING - ЗАЩИТА ОТ DDoS И БРУТФОРСА ==========
+
+// Общий лимит для всех запросов
+const globalLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 минута
+    max: 100, // максимум 100 запросов в минуту
+    message: { error: 'Слишком много запросов. Подождите немного.' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Лимит для авторизации (вход и регистрация)
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 минут
+    max: 5, // максимум 5 попыток
+    message: { error: 'Слишком много попыток входа. Подождите 15 минут.' },
+    skipSuccessfulRequests: true, // успешные входы не считаются
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Лимит для отправки сообщений
+const messageLimiter = rateLimit({
+    windowMs: 10 * 1000, // 10 секунд
+    max: 30, // максимум 30 сообщений
+    message: { error: 'Слишком много сообщений. Подождите немного.' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Лимит для загрузки файлов
+const uploadLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 минута
+    max: 10, // максимум 10 файлов в минуту
+    message: { error: 'Слишком много файлов. Подождите немного.' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Лимит для поиска
+const searchLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 минута
+    max: 20, // максимум 20 поисковых запросов
+    message: { error: 'Слишком много запросов поиска. Подождите.' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Применяем общий лимит ко всем API запросам
+app.use('/api/', globalLimiter);
+
+// Применяем специальные лимиты к конкретным маршрутам
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/messages/send', messageLimiter);
+app.use('/api/upload-file', uploadLimiter);
+app.use('/api/upload-photo', uploadLimiter);
+app.use('/api/auth/search', searchLimiter);
 
 // ========== СОЗДАЁМ ПАПКУ ДЛЯ ВРЕМЕННЫХ ФАЙЛОВ ==========
 if (!fs.existsSync('./temp')) {
