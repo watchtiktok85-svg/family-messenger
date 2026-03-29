@@ -531,7 +531,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('typing', (data) => {
-    console.log(`✏️ Typing event: user ${data.senderId} -> ${data.receiverId}, isTyping: ${data.isTyping}`);
     socket.to(`user_${data.receiverId}`).emit('user_typing', {
         userId: data.senderId,
         isTyping: data.isTyping
