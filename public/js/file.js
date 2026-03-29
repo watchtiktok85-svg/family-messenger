@@ -8,7 +8,7 @@ function selectFile() {
     input.onchange = async (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (file.size > 50 * 1024 * 1024) {
+            if (file.size > 200 * 1024 * 1024) {
                 alert('❌ Файл слишком большой. Максимальный размер 50 MB');
                 return;
             }
