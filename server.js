@@ -422,6 +422,96 @@ app.delete('/api/avatar/:userId', async (req, res) => {
     }
 });
 
+// ========== МАРШРУТЫ ДЛЯ РЕАКЦИЙ ==========
+
+// Получить реакции для сообщения
+app.get('/api/messages/reactions/:messageId', async (req, res) => {
+    const { messageId } = req.params;
+    
+    try {
+        const reactions = await getReactionsForMessage(parseInt(messageId));
+        res.json(reactions);
+    } catch (err) {
+        console.error('❌ Ошибка получения реакций:', err);
+        res.status(500).json({ error: 'Ошибка получения реакций' });
+    }
+});
+
+// Добавить реакцию
+app.post('/api/messages/reaction', async (req, res) => {
+    const { messageId, userId, reaction } = req.body;
+    
+    if (!messageId || !userId || !reaction) {
+        return res.status(400).json({ error: 'Неверные данные' });
+    }
+    
+    try {
+        await addReaction(messageId, userId, reaction);
+        
+        // Получаем обновлённые реакции для сообщения
+        const reactions = await getReactionsForMessage(messageId);
+        
+        // Уведомляем всех в чате через WebSocket
+        const messageResult = await pool.query(
+            'SELECT sender_id, receiver_id FROM messages WHERE id = $1',
+            [messageId]
+        );
+        
+        if (messageResult.rows.length > 0) {
+            const { sender_id, receiver_id } = messageResult.rows[0];
+            io.to(`user_${sender_id}`).emit('reaction_updated', {
+                messageId,
+                reactions,
+                userId
+            });
+            io.to(`user_${receiver_id}`).emit('reaction_updated', {
+                messageId,
+                reactions,
+                userId
+            });
+        }
+        
+        res.json({ success: true, reactions });
+    } catch (err) {
+        console.error('❌ Ошибка добавления реакции:', err);
+        res.status(500).json({ error: 'Ошибка добавления реакции' });
+    }
+});
+
+// Удалить реакцию
+app.delete('/api/messages/reaction', async (req, res) => {
+    const { messageId, userId } = req.body;
+    
+    try {
+        await removeReaction(messageId, userId);
+        const reactions = await getReactionsForMessage(messageId);
+        
+        const messageResult = await pool.query(
+            'SELECT sender_id, receiver_id FROM messages WHERE id = $1',
+            [messageId]
+        );
+        
+        if (messageResult.rows.length > 0) {
+            const { sender_id, receiver_id } = messageResult.rows[0];
+            io.to(`user_${sender_id}`).emit('reaction_updated', {
+                messageId,
+                reactions,
+                userId
+            });
+            io.to(`user_${receiver_id}`).emit('reaction_updated', {
+                messageId,
+                reactions,
+                userId
+            });
+        }
+        
+        res.json({ success: true, reactions });
+    } catch (err) {
+        console.error('❌ Ошибка удаления реакции:', err);
+        res.status(500).json({ error: 'Ошибка удаления реакции' });
+    }
+});
+
 // Подключаем маршруты
 const authRoutes = require('./routes/auth')({ 
     findUserByPhone, 
