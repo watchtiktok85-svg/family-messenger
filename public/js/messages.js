@@ -346,7 +346,7 @@ function handleTyping(event) {
                 receiverId: currentChat.id,
                 isTyping: false
             });
-        }, 2000);
+        }, 1500); // Уменьшил с 2000 до 1500
     }
 }
 
