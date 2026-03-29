@@ -89,7 +89,7 @@ const fileStorage = multer.diskStorage({
 
 const uploadFile = multer({
     storage: fileStorage,
-    limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB для APK/EXE
+    limits: { fileSize: 200 * 1024 * 1024 }, // 100 MB для APK/EXE
     fileFilter: (req, file, cb) => {
         // Расширенный список MIME-типов
         const allowedTypes = [
