@@ -531,12 +531,13 @@ io.on('connection', (socket) => {
     });
 
     socket.on('typing', (data) => {
-        socket.to(`user_${data.receiverId}`).emit('user_typing', {
-            userId: data.senderId,
-            isTyping: data.isTyping
-        });
+    // Отправляем только получателю, без логов
+    socket.to(`user_${data.receiverId}`).emit('user_typing', {
+        userId: data.senderId,
+        isTyping: data.isTyping
     });
-
+});
+  
     socket.on('mark_read', async (data) => {
         const { messageId, userId, contactId } = data;
 
