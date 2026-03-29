@@ -5,6 +5,9 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// ========== КЭШ ДЛЯ РЕАКЦИЙ ==========
+let reactionsCache = {};
+
 async function openChat(userId, username) {
     console.log('🔓 Opening chat with:', userId, username);
     
