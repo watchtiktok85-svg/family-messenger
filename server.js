@@ -9,7 +9,7 @@ const { Pool } = require('pg');
 
 const { 
   initializeDatabase, 
-  findUserByPhone, 
+  findUserByPhone,
   findUserById, 
   createUser, 
   updateUserStatus, 
@@ -199,8 +199,13 @@ app.get('/api/file/:fileId', async (req, res) => {
         }
         
         const file = result.rows[0];
+        
+        // Кодируем имя файла для корректного отображения кириллицы
+        const encodedFileName = encodeURIComponent(file.file_name);
+        
         res.set('Content-Type', file.file_type);
-        res.set('Content-Disposition', `inline; filename="${file.file_name}"`);
+        res.set('Content-Disposition', `attachment; filename="${encodedFileName}"; filename*=UTF-8''${encodedFileName}`);
+        res.set('Content-Length', file.file_data.length);
         res.send(file.file_data);
         
     } catch (err) {
