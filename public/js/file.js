@@ -18,12 +18,11 @@ function selectFile() {
     input.click();
 }
 
-// Отправка файла
+// Отправка файла с улучшенной обработкой ошибок
 async function sendFile(file) {
     const formData = new FormData();
     formData.append('file', file);
     
-    // Показываем индикатор загрузки
     const progressBar = document.getElementById('uploadProgress');
     const progressFill = document.getElementById('progressFill');
     const progressText = progressBar?.querySelector('div:first-child');
@@ -41,13 +40,18 @@ async function sendFile(file) {
             body: formData
         });
         
+        // Проверяем, не вернулся ли HTML вместо JSON (ошибка сервера)
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+            throw new Error('Сервер вернул HTML вместо JSON. Возможно, маршрут не существует.');
+        }
+        
         const data = await response.json();
         
         if (progressBar) progressBar.style.display = 'none';
         if (progressFill) progressFill.style.width = '0%';
         
         if (response.ok) {
-            // Определяем тип файла для отображения
             let messageType = 'file';
             if (file.type.startsWith('image/')) {
                 messageType = 'image';
@@ -68,20 +72,24 @@ async function sendFile(file) {
                 fileType: file.type
             });
         } else {
-            // Показываем конкретную ошибку от сервера
             alert(`❌ Ошибка: ${data.error || 'Не удалось отправить файл'}`);
         }
     } catch (error) {
         console.error('Error sending file:', error);
         
-        // Пытаемся получить текст ошибки
         let errorMsg = 'Ошибка при отправке файла';
-        if (error.message) {
+        if (error.message.includes('HTML')) {
+            errorMsg = 'Сервер не обрабатывает загрузку файлов. Проверьте маршрут /api/upload-file';
+        } else if (error.message.includes('Failed to fetch')) {
+            errorMsg = 'Не удалось соединиться с сервером';
+        } else if (error.message) {
             errorMsg = error.message;
         }
+        
         alert(`❌ ${errorMsg}`);
         
         if (progressBar) progressBar.style.display = 'none';
+        if (progressFill) progressFill.style.width = '0%';
     }
 }
 
