@@ -365,7 +365,7 @@ async function uploadAvatar(file) {
         if (response.ok) {
             alert('✅ Аватарка обновлена!');
             
-            // Обновляем аватарку везде
+            // ОБНОВЛЯЕМ АВАТАРКУ ВЕЗДЕ
             await updateAvatarEverywhere();
             
             // Обновляем страницу профиля
@@ -409,18 +409,25 @@ async function removeAvatar() {
             alert('✅ Аватарка удалена');
             
             // Сбрасываем аватарку на букву везде
-            const drawerAvatar = document.querySelector('.drawer-avatar');
+            const drawerAvatar = document.getElementById('drawer-avatar');
             if (drawerAvatar) {
                 drawerAvatar.style.backgroundImage = '';
                 drawerAvatar.textContent = currentUser.username[0].toUpperCase();
                 drawerAvatar.style.color = '';
             }
             
-            const chatHeaderAvatar = document.querySelector('.chat-header-avatar');
-            if (chatHeaderAvatar && currentChat && currentChat.id === currentUser.id) {
-                chatHeaderAvatar.style.backgroundImage = '';
-                chatHeaderAvatar.textContent = currentUser.username[0].toUpperCase();
-                chatHeaderAvatar.style.color = '';
+            const chatAvatar = document.querySelector('.chat-header-avatar');
+            if (chatAvatar && currentChat) {
+                chatAvatar.style.backgroundImage = '';
+                chatAvatar.textContent = currentChat.username[0].toUpperCase();
+                chatAvatar.style.color = '';
+            }
+            
+            const miniProfileAvatar = document.querySelector('.profile-avatar-large');
+            if (miniProfileAvatar) {
+                miniProfileAvatar.style.backgroundImage = '';
+                miniProfileAvatar.textContent = currentUser.username[0].toUpperCase();
+                miniProfileAvatar.style.color = '';
             }
             
             // Обновляем страницу профиля и список чатов
@@ -437,38 +444,83 @@ async function removeAvatar() {
 
 // Обновить аватарку во всех местах
 async function updateAvatarEverywhere() {
+    console.log('🔄 Обновление аватарки везде...');
+    
     // 1. Обновляем в боковой панели (drawer)
-    const drawerAvatar = document.querySelector('.drawer-avatar');
+    const drawerAvatar = document.getElementById('drawer-avatar');
     if (drawerAvatar) {
-        drawerAvatar.style.backgroundImage = `url('${SERVER_URL}/api/avatar/${currentUser.id}?t=${Date.now()}')`;
-        drawerAvatar.style.backgroundSize = 'cover';
-        drawerAvatar.style.backgroundPosition = 'center';
-        drawerAvatar.style.color = 'transparent';
-        drawerAvatar.textContent = '';
+        try {
+            const response = await fetch(`${SERVER_URL}/api/avatar/${currentUser.id}`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                drawerAvatar.style.backgroundImage = `url('${url}')`;
+                drawerAvatar.style.backgroundSize = 'cover';
+                drawerAvatar.style.backgroundPosition = 'center';
+                drawerAvatar.style.color = 'transparent';
+                drawerAvatar.textContent = '';
+            } else {
+                throw new Error('No avatar');
+            }
+        } catch (e) {
+            drawerAvatar.style.backgroundImage = '';
+            drawerAvatar.textContent = currentUser.username[0].toUpperCase();
+            drawerAvatar.style.color = '';
+        }
     }
     
-    // 2. Обновляем в шапке чата (если чат открыт)
-    const chatHeaderAvatar = document.querySelector('.chat-header-avatar');
-    if (chatHeaderAvatar && currentChat && currentChat.id === currentUser.id) {
-        chatHeaderAvatar.style.backgroundImage = `url('${SERVER_URL}/api/avatar/${currentUser.id}?t=${Date.now()}')`;
-        chatHeaderAvatar.style.backgroundSize = 'cover';
-        chatHeaderAvatar.style.backgroundPosition = 'center';
-        chatHeaderAvatar.style.color = 'transparent';
-        chatHeaderAvatar.textContent = '';
+    // 2. Обновляем в шапке текущего чата (если открыт)
+    if (currentChat) {
+        const chatAvatar = document.querySelector('.chat-header-avatar');
+        if (chatAvatar) {
+            try {
+                const response = await fetch(`${SERVER_URL}/api/avatar/${currentChat.id}`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    chatAvatar.style.backgroundImage = `url('${url}')`;
+                    chatAvatar.style.backgroundSize = 'cover';
+                    chatAvatar.style.backgroundPosition = 'center';
+                    chatAvatar.style.color = 'transparent';
+                    chatAvatar.textContent = '';
+                } else {
+                    throw new Error('No avatar');
+                }
+            } catch (e) {
+                chatAvatar.style.backgroundImage = '';
+                chatAvatar.textContent = currentChat.username[0].toUpperCase();
+                chatAvatar.style.color = '';
+            }
+        }
     }
     
     // 3. Обновляем в мини-профиле (если открыт)
     const miniProfileAvatar = document.querySelector('.profile-avatar-large');
     if (miniProfileAvatar) {
-        miniProfileAvatar.style.backgroundImage = `url('${SERVER_URL}/api/avatar/${currentUser.id}?t=${Date.now()}')`;
-        miniProfileAvatar.style.backgroundSize = 'cover';
-        miniProfileAvatar.style.backgroundPosition = 'center';
-        miniProfileAvatar.style.color = 'transparent';
-        miniProfileAvatar.textContent = '';
+        try {
+            const response = await fetch(`${SERVER_URL}/api/avatar/${currentUser.id}`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                miniProfileAvatar.style.backgroundImage = `url('${url}')`;
+                miniProfileAvatar.style.backgroundSize = 'cover';
+                miniProfileAvatar.style.backgroundPosition = 'center';
+                miniProfileAvatar.style.color = 'transparent';
+                miniProfileAvatar.textContent = '';
+            } else {
+                throw new Error('No avatar');
+            }
+        } catch (e) {
+            miniProfileAvatar.style.backgroundImage = '';
+            miniProfileAvatar.textContent = currentUser.username[0].toUpperCase();
+            miniProfileAvatar.style.color = '';
+        }
     }
     
     // 4. Перезагружаем список чатов (обновятся аватарки в списке)
     loadChats();
+    
+    console.log('✅ Аватарка обновлена везде');
 }
 
 function updateDrawerInfo() {
@@ -522,3 +574,4 @@ window.changeUsername = changeUsername;
 window.selectAvatar = selectAvatar;
 window.removeAvatar = removeAvatar;
 window.uploadAvatar = uploadAvatar;
+window.updateAvatarEverywhere = updateAvatarEverywhere;
