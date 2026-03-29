@@ -5,9 +5,6 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-// ========== КЭШ ДЛЯ РЕАКЦИЙ ==========
-let reactionsCache = {};
-
 async function openChat(userId, username) {
     console.log('🔓 Opening chat with:', userId, username);
     
@@ -255,56 +252,17 @@ function renderMessage(msg) {
         content = `<div class="message-content">${escapeHtml(msg.message)}</div>`;
     }
     
-    const status = msg.status === 'read' ? '✓✓' : (msg.status === 'sent' ? '✓' : '');
-    
-    // Получаем HTML реакций (синхронно, без async)
-    let reactionsHtml = '';
-    if (reactionsCache[msg.id]) {
-        reactionsHtml = renderReactionsHtml(msg.id, reactionsCache[msg.id]);
-    }
+    const status = msg.status === 'read' ? '✓✓' : (msg.status === 'sent' ? '✓' : '')
     
     return `
         <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}">
             ${content}
-            <div class="message-reactions" id="reactions-${msg.id}">
-                ${reactionsHtml}
-            </div>
             <div class="message-meta">
                 <span class="message-time">${time}</span>
                 ${isSent ? `<span class="message-status">${status}</span>` : ''}
-                <button class="reaction-btn" onclick="showReactionPicker(${msg.id})">😊</button>
             </div>
         </div>
     `;
-}
-
-// Рендер HTML реакций
-function renderReactionsHtml(messageId, reactions) {
-    if (!reactions || reactions.length === 0) return '';
-    
-    // Группируем реакции
-    const grouped = {};
-    reactions.forEach(r => {
-        if (!grouped[r.reaction]) {
-            grouped[r.reaction] = { count: 0, users: [] };
-        }
-        grouped[r.reaction].count++;
-        grouped[r.reaction].users.push(r.username);
-    });
-    
-    let html = '<div class="reactions-container">';
-    for (const [reaction, data] of Object.entries(grouped)) {
-        const isMyReaction = reactions.some(r => r.reaction === reaction && r.user_id === currentUser.id);
-        html += `
-            <div class="reaction-badge ${isMyReaction ? 'my-reaction' : ''}" 
-                 onclick="toggleReaction(${messageId}, '${reaction}')"
-                 title="${data.users.join(', ')}">
-                ${reaction} ${data.count}
-            </div>
-        `;
-    }
-    html += '</div>';
-    return html;
 }
 
 function addMessageToChat(message) {
@@ -739,122 +697,6 @@ async function autoSavePhotoIfNeeded(imageUrl) {
         console.log('📸 Автосохранение фото выключено');
     }
 }
-
-// Загрузить реакции для всех сообщений в чате
-async function loadReactionsForMessages(messages) {
-    if (!messages || messages.length === 0) return;
-    
-    const messageIds = messages.map(m => m.id);
-    
-    try {
-        // Загружаем реакции для всех сообщений одним запросом
-        const response = await fetch(`${SERVER_URL}/api/messages/reactions/batch`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messageIds })
-        });
-        
-        if (response.ok) {
-            const reactions = await response.json();
-            // Группируем реакции по message_id
-            reactions.forEach(r => {
-                if (!reactionsCache[r.message_id]) {
-                    reactionsCache[r.message_id] = [];
-                }
-                reactionsCache[r.message_id].push(r);
-            });
-            
-            // Обновляем отображение каждого сообщения
-            messages.forEach(msg => {
-                updateReactionsDisplay(msg.id, reactionsCache[msg.id] || []);
-            });
-        }
-    } catch (error) {
-        console.error('Error loading reactions:', error);
-    }
-}
-
-// Обновить отображение реакций для сообщения
-function updateReactionsDisplay(messageId, reactions) {
-    const container = document.getElementById(`reactions-${messageId}`);
-    if (!container) return;
-    
-    const html = renderReactionsHtml(messageId, reactions);
-    container.innerHTML = html;
-}
-
-// Показать выбор реакций
-function showReactionPicker(messageId) {
-    // Удаляем старый пикер
-    const oldPicker = document.querySelector('.reaction-picker');
-    if (oldPicker) oldPicker.remove();
-    
-    const reactions = ['👍', '❤️', '😂', '😮', '😢', '😡'];
-    
-    const picker = document.createElement('div');
-    picker.className = 'reaction-picker';
-    picker.innerHTML = reactions.map(r => 
-        `<button class="reaction-option" onclick="toggleReaction(${messageId}, '${r}')">${r}</button>`
-    ).join('');
-    
-    // Позиционируем рядом с кнопкой
-    const btn = event.target;
-    const rect = btn.getBoundingClientRect();
-    picker.style.position = 'fixed';
-    picker.style.top = `${rect.top - 50}px`;
-    picker.style.left = `${rect.left}px`;
-    
-    document.body.appendChild(picker);
-    
-    // Закрыть при клике вне
-    setTimeout(() => {
-        document.addEventListener('click', function closePicker(e) {
-            if (!picker.contains(e.target) && e.target !== btn) {
-                picker.remove();
-                document.removeEventListener('click', closePicker);
-            }
-        });
-    }, 100);
-}
-
-// Переключить реакцию (добавить/удалить)
-async function toggleReaction(messageId, reaction) {
-    const currentReactions = reactionsCache[messageId] || [];
-    const hasReaction = currentReactions.some(r => r.reaction === reaction && r.user_id === currentUser.id);
-    
-    try {
-        let response;
-        if (hasReaction) {
-            response = await fetch(`${SERVER_URL}/api/messages/reaction`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messageId, userId: currentUser.id })
-            });
-        } else {
-            response = await fetch(`${SERVER_URL}/api/messages/reaction`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messageId, userId: currentUser.id, reaction })
-            });
-        }
-        
-        if (response.ok) {
-            const data = await response.json();
-            reactionsCache[messageId] = data.reactions;
-            updateReactionsDisplay(messageId, data.reactions);
-        }
-    } catch (error) {
-        console.error('Error toggling reaction:', error);
-    }
-    
-    // Закрыть пикер
-    const picker = document.querySelector('.reaction-picker');
-    if (picker) picker.remove();
-}
-
-// Делаем функции глобальными
-window.showReactionPicker = showReactionPicker;
-window.toggleReaction = toggleReaction;
 
 // ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ==========
 window.openChat = openChat;
