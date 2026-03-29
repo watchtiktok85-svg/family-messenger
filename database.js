@@ -104,6 +104,19 @@ await pool.query(`
 `);
 console.log('✅ Таблица files готова');
   
+  // Таблица для аватарок пользователей
+await pool.query(`
+    CREATE TABLE IF NOT EXISTS avatars (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER UNIQUE NOT NULL,
+        file_data BYTEA NOT NULL,
+        file_type TEXT NOT NULL,
+        updated_at BIGINT,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+`);
+console.log('✅ Таблица avatars готова');
+  
   // Индексы
   await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id)');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id)');
@@ -325,6 +338,40 @@ async function cleanupOldMessages(daysOld = 30) {
   console.log(`🧹 Удалено ${result.rowCount} старых сообщений`);
 }
 
+// Сохранить аватарку
+async function saveAvatar(userId, fileData, fileType) {
+    // Проверяем, есть ли уже аватарка у пользователя
+    const existing = await pool.query('SELECT id FROM avatars WHERE user_id = $1', [userId]);
+    
+    if (existing.rows.length > 0) {
+        // Обновляем существующую
+        await pool.query(
+            'UPDATE avatars SET file_data = $1, file_type = $2, updated_at = $3 WHERE user_id = $4',
+            [fileData, fileType, Date.now(), userId]
+        );
+    } else {
+        // Создаём новую
+        await pool.query(
+            'INSERT INTO avatars (user_id, file_data, file_type, updated_at) VALUES ($1, $2, $3, $4)',
+            [userId, fileData, fileType, Date.now()]
+        );
+    }
+}
+
+// Получить аватарку
+async function getAvatar(userId) {
+    const result = await pool.query(
+        'SELECT file_data, file_type FROM avatars WHERE user_id = $1',
+        [userId]
+    );
+    return result.rows[0] || null;
+}
+
+// Удалить аватарку (сбросить на дефолтную)
+async function deleteAvatar(userId) {
+    await pool.query('DELETE FROM avatars WHERE user_id = $1', [userId]);
+}
+
 module.exports = {
   initializeDatabase,
   findUserByPhone,
@@ -338,5 +385,8 @@ module.exports = {
   getRecentChats,
   deleteMessagesBetweenUsers,
   updateUsername,
-  cleanupOldMessages
+  cleanupOldMessages,
+  saveAvatar,
+  getAvatar,
+  deleteAvatar
 };
