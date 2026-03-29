@@ -1559,3 +1559,34 @@ input:checked + .slider:before {
     align-items: center;
     justify-content: center;
 }
+
+/* Стили для аватарок с картинкой */
+.drawer-avatar,
+.chat-header-avatar,
+.chat-avatar {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Для чат-аватарок в списке */
+.chat-avatar {
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* Чтобы буква не перекрывала картинку, когда картинка есть */
+.chat-avatar[style*="background-image"] {
+    color: transparent !important;
+}
+
+.drawer-avatar[style*="background-image"] {
+    color: transparent !important;
+}
+
+.chat-header-avatar[style*="background-image"] {
+    color: transparent !important;
+}
