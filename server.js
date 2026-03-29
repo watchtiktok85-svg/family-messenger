@@ -422,6 +422,62 @@ app.delete('/api/avatar/:userId', async (req, res) => {
     }
 });
 
+// Переслать сообщение
+app.post('/api/messages/forward', async (req, res) => {
+    const { originalMessageId, fromUserId, toUserId } = req.body;
+    
+    if (!originalMessageId || !fromUserId || !toUserId) {
+        return res.status(400).json({ error: 'Неверные данные' });
+    }
+    
+    try {
+        // Получаем оригинальное сообщение
+        const originalMsg = await pool.query(
+            'SELECT message, type, file_id, file_name, file_size, file_type FROM messages WHERE id = $1',
+            [originalMessageId]
+        );
+        
+        if (originalMsg.rows.length === 0) {
+            return res.status(404).json({ error: 'Сообщение не найдено' });
+        }
+        
+        const msg = originalMsg.rows[0];
+        
+        // Создаём новое сообщение с пометкой "переслано"
+        const forwardedMessage = msg.type === 'text' 
+            ? `📨 Переслано: ${msg.message}`
+            : `📨 Переслано: ${msg.type === 'image' ? '📷 Фото' : msg.type === 'file' ? '📎 Файл' : '📨 Сообщение'}`;
+        
+        const result = await pool.query(
+            `INSERT INTO messages (sender_id, receiver_id, message, type, file_id, file_name, file_size, file_type, timestamp, status) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'sent') RETURNING id`,
+            [fromUserId, toUserId, forwardedMessage, msg.type, msg.file_id, msg.file_name, msg.file_size, msg.file_type, Date.now()]
+        );
+        
+        const messageData = {
+            id: result.rows[0].id,
+            senderId: fromUserId,
+            receiverId: toUserId,
+            message: forwardedMessage,
+            type: msg.type,
+            fileId: msg.file_id,
+            fileName: msg.file_name,
+            fileSize: msg.file_size,
+            fileType: msg.file_type,
+            timestamp: Date.now(),
+            isForwarded: true
+        };
+        
+        // Уведомляем получателя
+        io.to(`user_${toUserId}`).emit('new_message', messageData);
+        
+        res.json({ success: true, message: messageData });
+    } catch (err) {
+        console.error('❌ Ошибка пересылки:', err);
+        res.status(500).json({ error: 'Ошибка пересылки сообщения' });
+    }
+});
+
 // Подключаем маршруты
 const authRoutes = require('./routes/auth')({ 
     findUserByPhone, 
