@@ -1633,3 +1633,134 @@ input:checked + .slider:before {
     50% { opacity: 1; }
     100% { opacity: 0.5; }
 }
+
+/* Меню сообщения при долгом нажатии */
+.message-menu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10000;
+    animation: fadeInScale 0.2s;
+}
+
+.message-menu-content {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    padding: 10px;
+    min-width: 200px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.message-menu-item {
+    padding: 12px 20px;
+    cursor: pointer;
+    border-radius: 8px;
+    color: var(--text-primary);
+    transition: background 0.2s;
+}
+
+.message-menu-item:hover {
+    background: var(--bg-primary);
+}
+
+.message-menu-close {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    color: var(--text-secondary);
+}
+
+.message-menu-close:hover {
+    background: var(--bg-primary);
+}
+
+/* Модальное окно пересылки */
+.forward-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+}
+
+.forward-modal-content {
+    background: var(--bg-secondary);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 350px;
+    max-height: 80vh;
+    overflow: hidden;
+    animation: slideUp 0.3s;
+}
+
+.forward-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.forward-modal-header h3 {
+    color: var(--text-primary);
+    font-size: 18px;
+}
+
+.forward-modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.forward-modal-list {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.forward-modal-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: background 0.2s;
+}
+
+.forward-modal-item:hover {
+    background: var(--bg-primary);
+}
+
+.forward-avatar {
+    width: 45px;
+    height: 45px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.forward-name {
+    color: var(--text-primary);
+    font-size: 16px;
+}
