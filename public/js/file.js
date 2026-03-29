@@ -68,11 +68,19 @@ async function sendFile(file) {
                 fileType: file.type
             });
         } else {
-            alert('❌ Ошибка при отправке файла');
+            // Показываем конкретную ошибку от сервера
+            alert(`❌ Ошибка: ${data.error || 'Не удалось отправить файл'}`);
         }
     } catch (error) {
         console.error('Error sending file:', error);
-        alert('Ошибка при отправке файла');
+        
+        // Пытаемся получить текст ошибки
+        let errorMsg = 'Ошибка при отправке файла';
+        if (error.message) {
+            errorMsg = error.message;
+        }
+        alert(`❌ ${errorMsg}`);
+        
         if (progressBar) progressBar.style.display = 'none';
     }
 }
