@@ -317,28 +317,18 @@ socket.on('new_message', (message) => {
     });
     
     socket.on('user_typing', (data) => {
-    console.log('🔵 user_typing received:', data);
-    console.log('🔵 currentChat:', currentChat);
-    
     if (currentChat && data.userId === currentChat.id) {
         const typingDiv = document.getElementById('typing-indicator');
         const statusDiv = document.getElementById('chat-status');
-        
-        console.log('🔵 typingDiv found:', typingDiv);
-        console.log('🔵 statusDiv found:', statusDiv);
         
         if (typingDiv) {
             if (data.isTyping) {
                 typingDiv.style.display = 'block';
                 if (statusDiv) statusDiv.style.display = 'none';
-                console.log('🔵 Showing typing indicator');
             } else {
                 typingDiv.style.display = 'none';
                 if (statusDiv) statusDiv.style.display = 'block';
-                console.log('🔵 Hiding typing indicator');
             }
-        } else {
-            console.log('🔵 typingDiv NOT found!');
         }
     }
 });
