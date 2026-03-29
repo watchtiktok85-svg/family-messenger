@@ -331,8 +331,6 @@ function handleTyping(event) {
     
     const isTyping = event.target.value.length > 0;
 
-    console.log('✏️ Sending typing:', isTyping, 'to:', currentChat.id);
-    
     socket.emit('typing', {
         senderId: currentUser.id,
         receiverId: currentChat.id,
