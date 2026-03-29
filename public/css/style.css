@@ -388,9 +388,10 @@ body {
 }
 
 .typing-indicator {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--accent);
     font-style: italic;
+    animation: pulse 1s infinite;
 }
 
 /* КОНТЕЙНЕР СООБЩЕНИЙ */
@@ -1589,4 +1590,9 @@ input:checked + .slider:before {
 
 .chat-header-avatar[style*="background-image"] {
     color: transparent !important;
+}
+
+.chat-header-status,
+.typing-indicator {
+    transition: opacity 0.2s;
 }
