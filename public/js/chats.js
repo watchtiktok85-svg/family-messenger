@@ -305,6 +305,102 @@ function reloadPage() {
     }, 500);
 }
 
+// Выбор и загрузка аватарки
+function selectAvatar() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 2 * 1024 * 1024) {
+                alert('❌ Файл слишком большой. Максимальный размер 2 MB');
+                return;
+            }
+            await uploadAvatar(file);
+        }
+    };
+    input.click();
+}
+
+// Загрузка аватарки на сервер
+async function uploadAvatar(file) {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    formData.append('userId', currentUser.id);
+    
+    const progressBar = document.getElementById('uploadProgress');
+    if (progressBar) progressBar.style.display = 'block';
+    
+    try {
+        const response = await fetch(`${SERVER_URL}/api/avatar/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (progressBar) progressBar.style.display = 'none';
+        
+        if (response.ok) {
+            alert('✅ Аватарка обновлена!');
+            // Обновляем интерфейс
+            updateAvatarInUI();
+            loadChats(); // Перезагружаем список чатов
+        } else {
+            alert('❌ Ошибка: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error uploading avatar:', error);
+        alert('Ошибка при загрузке аватарки');
+        if (progressBar) progressBar.style.display = 'none';
+    }
+}
+
+// Обновить аватарку в интерфейсе
+function updateAvatarInUI() {
+    // Обновляем аватарку в шапке
+    const avatarElement = document.querySelector('.drawer-avatar');
+    if (avatarElement) {
+        // Меняем текст на букву (пока не подгрузится картинка)
+        avatarElement.textContent = currentUser.username[0].toUpperCase();
+        avatarElement.style.backgroundImage = `url(${SERVER_URL}/api/avatar/${currentUser.id}?t=${Date.now()})`;
+        avatarElement.style.backgroundSize = 'cover';
+        avatarElement.style.backgroundPosition = 'center';
+        avatarElement.style.color = 'transparent';
+    }
+}
+
+// Удалить аватарку
+async function removeAvatar() {
+    if (!confirm('Удалить аватарку? Будет установлена стандартная.')) return;
+    
+    try {
+        const response = await fetch(`${SERVER_URL}/api/avatar/${currentUser.id}`, {
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('✅ Аватарка удалена');
+            // Сбрасываем отображение
+            const avatarElement = document.querySelector('.drawer-avatar');
+            if (avatarElement) {
+                avatarElement.textContent = currentUser.username[0].toUpperCase();
+                avatarElement.style.backgroundImage = '';
+                avatarElement.style.color = '';
+            }
+            loadChats();
+        } else {
+            alert('❌ Ошибка: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error removing avatar:', error);
+        alert('Ошибка при удалении аватарки');
+    }
+}
+
 // Делаем функцию глобальной
 window.reloadPage = reloadPage;
 
