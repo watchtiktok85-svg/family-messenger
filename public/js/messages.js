@@ -330,6 +330,7 @@ function handleTyping(event) {
     if (!socket || !currentChat) return;
     
     const isTyping = event.target.value.length > 0;
+    
     socket.emit('typing', {
         senderId: currentUser.id,
         receiverId: currentChat.id,
