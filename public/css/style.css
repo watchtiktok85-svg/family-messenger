@@ -1614,3 +1614,22 @@ input:checked + .slider:before {
     50% { opacity: 1; }
     100% { opacity: 0.6; }
 }
+
+.typing-indicator {
+    font-size: 12px;
+    color: #00a884;
+    font-style: italic;
+    display: none;
+    margin-top: 2px;
+    animation: pulse 1s infinite;
+}
+
+.chat-header-status {
+    display: block;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
