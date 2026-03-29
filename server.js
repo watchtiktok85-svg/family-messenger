@@ -39,21 +39,9 @@ const io = socketIO(server, {
   }
 });
 
-// ========== HELMET - ЗАЩИТНЫЕ ЗАГОЛОВКИ ==========
+// ========== HELMET - ЗАЩИТНЫЕ ЗАГОЛОВКИ (ОБЛЕГЧЁННАЯ ВЕРСИЯ) ==========
 app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.socket.io"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            imgSrc: ["'self'", "data:", "blob:"],
-            connectSrc: ["'self'", "wss:", "https:"],
-            fontSrc: ["'self'"],
-            objectSrc: ["'none'"],
-            mediaSrc: ["'self'"],
-            frameSrc: ["'none'"],
-        },
-    },
+    contentSecurityPolicy: false, // Отключаем CSP (он блокирует CSS/JS)
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
