@@ -1520,7 +1520,9 @@ input:checked + .slider:before {
 }
 
 /* Аватарка с картинкой */
-.drawer-avatar {
+.drawer-avatar,
+.chat-header-avatar,
+.profile-avatar-large {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -1547,4 +1549,13 @@ input:checked + .slider:before {
 
 .danger-btn:hover {
     background: #d32f2f;
+}
+
+/* Чтобы текст не перекрывал картинку */
+.drawer-avatar,
+.chat-header-avatar,
+.profile-avatar-large {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
