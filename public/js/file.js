@@ -109,11 +109,37 @@ function formatFileSize(bytes) {
     return (bytes / 1048576).toFixed(1) + ' MB';
 }
 
-// Скачать файл
+// Скачать файл (с правильным именем)
 function downloadFile(fileUrl, fileName) {
+    // Извлекаем имя файла из URL, если не передано
+    let finalFileName = fileName;
+    if (!finalFileName) {
+        // Пробуем получить имя из URL
+        const urlParts = fileUrl.split('/');
+        finalFileName = urlParts[urlParts.length - 1];
+    }
+    
+    // Убираем параметры из имени (если есть)
+    finalFileName = finalFileName.split('?')[0];
+    
+    // Добавляем расширение, если его нет
+    if (!finalFileName.includes('.')) {
+        // Пробуем определить тип по URL
+        if (fileUrl.includes('/api/file/')) {
+            finalFileName = finalFileName + '.bin';
+        } else if (fileUrl.includes('/api/photo/')) {
+            finalFileName = finalFileName + '.jpg';
+        } else {
+            finalFileName = finalFileName + '.file';
+        }
+    }
+    
+    console.log('📥 Скачивание файла:', finalFileName);
+    
+    // Создаём ссылку для скачивания
     const a = document.createElement('a');
     a.href = fileUrl;
-    a.download = fileName || fileUrl.split('/').pop();
+    a.download = finalFileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
