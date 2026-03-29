@@ -37,8 +37,7 @@ async function openChat(userId, username) {
             <div class="chat-screen">
                 <div class="chat-header">
                     <button class="back-btn" onclick="loadChats()">←</button>
-                    <div class="chat-header-avatar ${userInfo?.status === 'online' ? 'online' : ''}">
-                        ${username[0].toUpperCase()}
+                    <div class="chat-header-avatar ${userInfo?.status === 'online' ? 'online' : ''}" id="chat-header-avatar-${userId}">
                     </div>
                     <div class="chat-header-info">
                         <div class="chat-header-name" onclick="showMiniProfile(${userId}, '${username}')">${username}</div>
@@ -61,16 +60,42 @@ async function openChat(userId, username) {
                 </div>
                 
                 <div class="message-input-container">
-    <button class="file-btn" onclick="selectFile()" title="Прикрепить файл">📎</button>
-    <button class="photo-btn" onclick="selectPhoto()">📷</button>
-    <input type="text" class="message-input" id="message-input" 
-           placeholder="Сообщение" 
-           onkeyup="handleTyping(event)" 
-           onkeypress="if(event.key==='Enter') sendMessage()">
-    <button class="send-btn" onclick="sendMessage()">➤</button>
-</div>
+                    <button class="file-btn" onclick="selectFile()" title="Прикрепить файл">📎</button>
+                    <button class="photo-btn" onclick="selectPhoto()">📷</button>
+                    <input type="text" class="message-input" id="message-input" 
+                           placeholder="Сообщение" 
+                           onkeyup="handleTyping(event)" 
+                           onkeypress="if(event.key==='Enter') sendMessage()">
+                    <button class="send-btn" onclick="sendMessage()">➤</button>
+                </div>
             </div>
         `;
+
+        // Загружаем аватарку для шапки чата
+        const chatAvatar = document.getElementById(`chat-header-avatar-${userId}`);
+        if (chatAvatar) {
+            fetch(`${SERVER_URL}/api/avatar/${userId}`)
+                .then(response => {
+                    if (response.ok) {
+                        return response.blob();
+                    } else {
+                        throw new Error('No avatar');
+                    }
+                })
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    chatAvatar.style.backgroundImage = `url('${url}')`;
+                    chatAvatar.style.backgroundSize = 'cover';
+                    chatAvatar.style.backgroundPosition = 'center';
+                    chatAvatar.style.color = 'transparent';
+                    chatAvatar.textContent = '';
+                })
+                .catch(() => {
+                    chatAvatar.style.backgroundImage = '';
+                    chatAvatar.style.color = '';
+                    chatAvatar.textContent = username[0].toUpperCase();
+                });
+        }
 
         markMessagesAsRead(userId);
         setTimeout(scrollToBottom, 100);
@@ -79,9 +104,6 @@ async function openChat(userId, username) {
         console.error('❌ Ошибка открытия чата:', error);
         alert('Не удалось загрузить чат. Ошибка: ' + error.message);
     }
-    // Скрываем плавающую кнопку перезагрузки в чате
-const fab = document.querySelector('.fab-reload');
-if (fab) fab.style.display = 'none';
 }
 
 // Функции для меню чата
