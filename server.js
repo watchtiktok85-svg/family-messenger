@@ -26,6 +26,10 @@ const helmet = require('helmet');
 
 // Константы
 const app = express();
+// Доверяем прокси (для Railway/Render)
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
 const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
