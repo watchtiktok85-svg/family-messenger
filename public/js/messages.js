@@ -997,3 +997,4 @@ window.togglePhotoMenu = togglePhotoMenu;
 window.downloadPhoto = downloadPhoto;
 window.savePhotoToGallery = savePhotoToGallery;
 window.autoSavePhotoIfNeeded = autoSavePhotoIfNeeded;
+window.showMessageMenuById = showMessageMenuById;
