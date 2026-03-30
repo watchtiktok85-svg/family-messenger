@@ -71,7 +71,7 @@ async function openChat(userId, username) {
             </div>
         `;
 
-        // Загружаем аватарку для шапки чата
+                // Загружаем аватарку для шапки чата
         const chatAvatar = document.getElementById(`chat-header-avatar-${userId}`);
         if (chatAvatar) {
             fetch(`${SERVER_URL}/api/avatar/${userId}`)
@@ -95,13 +95,14 @@ async function openChat(userId, username) {
                     chatAvatar.style.color = '';
                     chatAvatar.textContent = username[0].toUpperCase();
                 });
-        
+        }
+
         markMessagesAsRead(userId);
         setTimeout(scrollToBottom, 100);
         setTimeout(() => {
             setupLongPressOnMessages();
         }, 200);
-    
+        
     } catch (error) {
         console.error('❌ Ошибка открытия чата:', error);
         alert('Не удалось загрузить чат. Ошибка: ' + error.message);
@@ -920,7 +921,8 @@ window.forwardMessage = forwardMessage;
 window.sendForwardMessage = sendForwardMessage;
 window.copyMessageText = copyMessageText;
 window.showMessageMenu = showMessageMenu;
-window.setupMessageLongPress = setupMessageLongPress;
+window.attachLongPressToMessage = attachLongPressToMessage;
+window.setupLongPressOnMessages = setupLongPressOnMessages;
 
 // ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ==========
 window.openChat = openChat;
@@ -940,6 +942,3 @@ window.togglePhotoMenu = togglePhotoMenu;
 window.downloadPhoto = downloadPhoto;
 window.savePhotoToGallery = savePhotoToGallery;
 window.autoSavePhotoIfNeeded = autoSavePhotoIfNeeded;
-window.togglePhotoMenu = togglePhotoMenu;
-window.attachLongPressToMessage = attachLongPressToMessage;
-window.setupLongPressOnMessages = setupLongPressOnMessages;
