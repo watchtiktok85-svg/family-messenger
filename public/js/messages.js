@@ -259,13 +259,14 @@ function renderMessage(msg) {
     
     return `
         <div class="message ${isSent ? 'sent' : 'received'}" data-message-id="${msg.id}">
-            ${content}
-            <div class="message-meta">
-                <span class="message-time">${time}</span>
-                ${isSent ? `<span class="message-status">${status}</span>` : ''}
-            </div>
+        ${content}
+        <div class="message-meta">
+            <span class="message-time">${time}</span>
+            ${isSent ? `<span class="message-status">${status}</span>` : ''}
+            <button class="message-menu-btn" onclick="event.stopPropagation(); showMessageMenuById(${msg.id})">⋮</button>
         </div>
-    `;
+    </div>
+`;
 }
 
 function addMessageToChat(message) {
@@ -770,6 +771,19 @@ function showMessageMenu(messageId, messageText, messageType, fileUrl, fileName,
     }, 100);
 }
 
+// Показать меню по ID сообщения (для кнопки)
+function showMessageMenuById(messageId) {
+    const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (!messageEl) return;
+    
+    const content = messageEl.querySelector('.message-content');
+    const messageText = content ? content.textContent : '';
+    const isImage = messageEl.querySelector('.photo-message') !== null;
+    const isFile = messageEl.querySelector('.file-message') !== null;
+    
+    showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '', messageEl);
+}
+        
 // Копировать текст сообщения
 function copyMessageText(text) {
     navigator.clipboard.writeText(text).then(() => {
