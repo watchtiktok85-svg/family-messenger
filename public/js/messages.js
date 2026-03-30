@@ -99,7 +99,8 @@ async function openChat(userId, username) {
 
         markMessagesAsRead(userId);
         setTimeout(scrollToBottom, 100);
-
+        setTimeout(setupMessageLongPress, 200);
+    
     } catch (error) {
         console.error('❌ Ошибка открытия чата:', error);
         alert('Не удалось загрузить чат. Ошибка: ' + error.message);
@@ -697,6 +698,184 @@ async function autoSavePhotoIfNeeded(imageUrl) {
         console.log('📸 Автосохранение фото выключено');
     }
 }
+
+// ========== ПЕРЕСЫЛКА СООБЩЕНИЙ ==========
+
+let longPressTimer = null;
+
+// Показать меню при долгом нажатии на сообщение
+function showMessageMenu(messageId, messageText, messageType, fileUrl, fileName) {
+    // Удаляем старое меню
+    const oldMenu = document.querySelector('.message-menu');
+    if (oldMenu) oldMenu.remove();
+    
+    const menu = document.createElement('div');
+    menu.className = 'message-menu';
+    menu.innerHTML = `
+        <div class="message-menu-content">
+            <div class="message-menu-item" onclick="forwardMessage(${messageId}, '${messageText.replace(/'/g, "\\'")}', '${messageType}', '${fileUrl}', '${fileName}')">
+                📤 Переслать
+            </div>
+            <div class="message-menu-item" onclick="copyMessageText('${messageText.replace(/'/g, "\\'")}')">
+                📋 Копировать текст
+            </div>
+            <div class="message-menu-close" onclick="this.parentElement.parentElement.remove()">✕</div>
+        </div>
+    `;
+    
+    document.body.appendChild(menu);
+    
+    // Закрыть при клике вне меню
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 100);
+}
+
+// Копировать текст сообщения
+function copyMessageText(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        alert('✅ Текст скопирован');
+    }).catch(() => {
+        alert('❌ Не удалось скопировать');
+    });
+    const menu = document.querySelector('.message-menu');
+    if (menu) menu.remove();
+}
+
+// Переслать сообщение
+async function forwardMessage(messageId, messageText, messageType, fileUrl, fileName) {
+    // Закрываем меню
+    const menu = document.querySelector('.message-menu');
+    if (menu) menu.remove();
+    
+    // Получаем список чатов для выбора
+    const response = await fetch(`${SERVER_URL}/api/messages/recent/${currentUser.id}`);
+    const chats = await response.json();
+    
+    if (chats.length === 0) {
+        alert('Нет чатов для пересылки');
+        return;
+    }
+    
+    // Создаём модальное окно с выбором чата
+    const modal = document.createElement('div');
+    modal.className = 'forward-modal';
+    modal.innerHTML = `
+        <div class="forward-modal-content">
+            <div class="forward-modal-header">
+                <h3>Переслать сообщение</h3>
+                <button class="forward-modal-close" onclick="this.parentElement.parentElement.parentElement.remove()">✕</button>
+            </div>
+            <div class="forward-modal-list">
+                ${chats.map(chat => `
+                    <div class="forward-modal-item" onclick="sendForwardMessage(${messageId}, ${chat.contact_id}, '${chat.contact_name}')">
+                        <div class="forward-avatar">${chat.contact_name[0].toUpperCase()}</div>
+                        <div class="forward-name">${chat.contact_name}</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// Отправить пересланное сообщение
+async function sendForwardMessage(originalMessageId, toUserId, toUsername) {
+    // Закрываем модальное окно
+    const modal = document.querySelector('.forward-modal');
+    if (modal) modal.remove();
+    
+    try {
+        const response = await fetch(`${SERVER_URL}/api/messages/forward`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                originalMessageId: originalMessageId,
+                fromUserId: currentUser.id,
+                toUserId: toUserId
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert(`✅ Сообщение переслано пользователю ${toUsername}`);
+        } else {
+            alert('❌ Ошибка: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error forwarding message:', error);
+        alert('Ошибка при пересылке');
+    }
+}
+
+// Настройка долгого нажатия на сообщения
+function setupLongPressOnMessages() {
+    const messages = document.querySelectorAll('.message');
+    messages.forEach(msg => {
+        // Для телефона (touch)
+        msg.addEventListener('touchstart', (e) => {
+            longPressTimer = setTimeout(() => {
+                const messageId = msg.dataset.messageId;
+                const content = msg.querySelector('.message-content');
+                const messageText = content ? content.textContent : '';
+                const isImage = msg.querySelector('.photo-message') !== null;
+                const isFile = msg.querySelector('.file-message') !== null;
+                
+                showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '');
+            }, 500);
+        });
+        
+        msg.addEventListener('touchend', () => {
+            clearTimeout(longPressTimer);
+        });
+        
+        msg.addEventListener('touchmove', () => {
+            clearTimeout(longPressTimer);
+        });
+        
+        // Для мыши (компьютер)
+        msg.addEventListener('mousedown', (e) => {
+            if (e.button === 0) {
+                longPressTimer = setTimeout(() => {
+                    const messageId = msg.dataset.messageId;
+                    const content = msg.querySelector('.message-content');
+                    const messageText = content ? content.textContent : '';
+                    const isImage = msg.querySelector('.photo-message') !== null;
+                    const isFile = msg.querySelector('.file-message') !== null;
+                    
+                    showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '');
+                }, 500);
+            }
+        });
+        
+        msg.addEventListener('mouseup', () => {
+            clearTimeout(longPressTimer);
+        });
+        
+        msg.addEventListener('mouseleave', () => {
+            clearTimeout(longPressTimer);
+        });
+    });
+}
+
+// Вызываем после загрузки сообщений
+function setupMessageLongPress() {
+    setTimeout(setupLongPressOnMessages, 100);
+}
+
+// Делаем функции глобальными
+window.forwardMessage = forwardMessage;
+window.sendForwardMessage = sendForwardMessage;
+window.copyMessageText = copyMessageText;
+window.showMessageMenu = showMessageMenu;
+window.setupMessageLongPress = setupMessageLongPress;
 
 // ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ==========
 window.openChat = openChat;
