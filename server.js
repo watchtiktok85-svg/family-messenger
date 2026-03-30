@@ -434,9 +434,9 @@ app.post('/api/messages/forward', async (req, res) => {
     }
     
     try {
-        // Получаем оригинальное сообщение
+        // Получаем оригинальное сообщение (без file_name, его нет в таблице messages)
         const originalMsg = await pool.query(
-            'SELECT message, type, file_id, file_name, file_size, file_type FROM messages WHERE id = $1',
+            'SELECT message, type, file_id FROM messages WHERE id = $1',
             [originalMessageId]
         );
         
@@ -459,9 +459,9 @@ app.post('/api/messages/forward', async (req, res) => {
         }
         
         const result = await pool.query(
-            `INSERT INTO messages (sender_id, receiver_id, message, type, file_id, file_name, file_size, file_type, timestamp, status) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'sent') RETURNING id`,
-            [fromUserId, toUserId, forwardedMessage, msg.type, msg.file_id, msg.file_name, msg.file_size, msg.file_type, Date.now()]
+            `INSERT INTO messages (sender_id, receiver_id, message, type, file_id, timestamp, status) 
+             VALUES ($1, $2, $3, $4, $5, $6, 'sent') RETURNING id`,
+            [fromUserId, toUserId, forwardedMessage, msg.type, msg.file_id, Date.now()]
         );
         
         const messageData = {
@@ -471,9 +471,6 @@ app.post('/api/messages/forward', async (req, res) => {
             message: forwardedMessage,
             type: msg.type,
             fileId: msg.file_id,
-            fileName: msg.file_name,
-            fileSize: msg.file_size,
-            fileType: msg.file_type,
             timestamp: Date.now(),
             isForwarded: true
         };
