@@ -722,23 +722,30 @@ function showMessageMenu(messageId, messageText, messageType, fileUrl, fileName,
     // Получаем позицию сообщения
     const rect = targetElement.getBoundingClientRect();
     const isNearBottom = rect.bottom > window.innerHeight - 150;
+    const isNearRight = rect.right > window.innerWidth - 150;
     
     // Создаём меню
     const menu = document.createElement('div');
     menu.className = 'message-menu';
     
-    // Позиционируем
+    // Позиционирование с учётом краёв экрана
+    let left = rect.left + rect.width / 2;
+    if (isNearRight) {
+        left = rect.right - 100;
+        menu.style.transform = 'translateX(0)';
+    } else {
+        menu.style.transform = 'translateX(-50%)';
+    }
+    
     if (isNearBottom) {
         menu.style.position = 'fixed';
         menu.style.bottom = `${window.innerHeight - rect.top + 10}px`;
-        menu.style.left = `${rect.left + rect.width / 2}px`;
-        menu.style.transform = 'translateX(-50%)';
+        menu.style.left = `${left}px`;
         menu.style.top = 'auto';
     } else {
         menu.style.position = 'fixed';
         menu.style.top = `${rect.bottom + 10}px`;
-        menu.style.left = `${rect.left + rect.width / 2}px`;
-        menu.style.transform = 'translateX(-50%)';
+        menu.style.left = `${left}px`;
     }
     
     menu.innerHTML = `
@@ -748,6 +755,9 @@ function showMessageMenu(messageId, messageText, messageType, fileUrl, fileName,
             </div>
             <div class="message-menu-item" onclick="copyMessageText('${messageText.replace(/'/g, "\\'")}')">
                 📋 Копировать текст
+            </div>
+            <div class="message-menu-item" onclick="deleteMessageFromChat(${messageId})">
+                🗑️ Удалить
             </div>
             <div class="message-menu-close" onclick="this.parentElement.parentElement.remove()">✕</div>
         </div>
@@ -915,6 +925,36 @@ function setupLongPressOnMessages() {
         attachLongPressToMessage(msg);
     });
 }
+
+// Удалить сообщение из чата (только у себя)
+async function deleteMessageFromChat(messageId) {
+    if (!confirm('Удалить это сообщение?')) return;
+    
+    try {
+        // Отправляем запрос на сервер
+        const response = await fetch(`${SERVER_URL}/api/messages/${messageId}?userId=${currentUser.id}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            // Удаляем из DOM
+            const messageEl = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (messageEl) {
+                messageEl.remove();
+            }
+            alert('✅ Сообщение удалено');
+        } else {
+            const data = await response.json();
+            alert('❌ Ошибка: ' + data.error);
+        }
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        alert('Ошибка при удалении сообщения');
+    }
+}
+
+// Делаем функцию глобальной
+window.deleteMessageFromChat = deleteMessageFromChat;
 
 // Делаем функции глобальными
 window.forwardMessage = forwardMessage;
