@@ -422,9 +422,12 @@ app.delete('/api/avatar/:userId', async (req, res) => {
     }
 });
 
-// Переслать сообщение
+// ========== ПЕРЕСЫЛКА СООБЩЕНИЙ ==========
+
 app.post('/api/messages/forward', async (req, res) => {
     const { originalMessageId, fromUserId, toUserId } = req.body;
+    
+    console.log('📨 Пересылка сообщения:', { originalMessageId, fromUserId, toUserId });
     
     if (!originalMessageId || !fromUserId || !toUserId) {
         return res.status(400).json({ error: 'Неверные данные' });
@@ -444,9 +447,16 @@ app.post('/api/messages/forward', async (req, res) => {
         const msg = originalMsg.rows[0];
         
         // Создаём новое сообщение с пометкой "переслано"
-        const forwardedMessage = msg.type === 'text' 
-            ? `📨 Переслано: ${msg.message}`
-            : `📨 Переслано: ${msg.type === 'image' ? '📷 Фото' : msg.type === 'file' ? '📎 Файл' : '📨 Сообщение'}`;
+        let forwardedMessage = '';
+        if (msg.type === 'text') {
+            forwardedMessage = `📨 Переслано: ${msg.message}`;
+        } else if (msg.type === 'image') {
+            forwardedMessage = '📨 Переслано: 📷 Фото';
+        } else if (msg.type === 'file') {
+            forwardedMessage = '📨 Переслано: 📎 Файл';
+        } else {
+            forwardedMessage = '📨 Переслано: сообщение';
+        }
         
         const result = await pool.query(
             `INSERT INTO messages (sender_id, receiver_id, message, type, file_id, file_name, file_size, file_type, timestamp, status) 
@@ -474,7 +484,7 @@ app.post('/api/messages/forward', async (req, res) => {
         res.json({ success: true, message: messageData });
     } catch (err) {
         console.error('❌ Ошибка пересылки:', err);
-        res.status(500).json({ error: 'Ошибка пересылки сообщения' });
+        res.status(500).json({ error: 'Ошибка пересылки сообщения: ' + err.message });
     }
 });
 
