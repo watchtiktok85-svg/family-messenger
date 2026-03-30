@@ -1775,3 +1775,20 @@ input:checked + .slider:before {
         transform: translate(-50%, -50%) scale(1);
     }
 }
+
+/* Анимация появления меню */
+.message-menu {
+    z-index: 10000;
+    animation: menuFadeIn 0.2s ease;
+}
+
+@keyframes menuFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
+}
