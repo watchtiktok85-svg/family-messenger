@@ -1904,3 +1904,7 @@ input:checked + .slider:before {
         background: var(--bg-primary);
     }
 }
+
+.message-menu-btn {
+    pointer-events: auto; /* Чтобы кнопка была кликабельной */
+}
