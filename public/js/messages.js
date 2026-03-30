@@ -99,7 +99,9 @@ async function openChat(userId, username) {
 
         markMessagesAsRead(userId);
         setTimeout(scrollToBottom, 100);
-        setTimeout(setupMessageLongPress, 200);
+        setTimeout(() => {
+            setupLongPressOnMessages();
+        }, 200);
     
     } catch (error) {
         console.error('❌ Ошибка открытия чата:', error);
@@ -290,7 +292,17 @@ function addMessageToChat(message) {
     container.insertAdjacentHTML('beforeend', messageHtml);
     scrollToBottom();
     
-     // ========== АВТОСОХРАНЕНИЕ ФОТО ==========
+    // ДОБАВЛЯЕМ ОБРАБОТЧИК ДЛЯ НОВОГО СООБЩЕНИЯ
+    const newMessage = container.lastElementChild;
+    if (newMessage) {
+        attachLongPressToMessage(newMessage);
+    }
+    
+    if (message.senderId === currentChat?.id) {
+        markMessagesAsRead(currentChat.id);
+    }
+    
+    // ========== АВТОСОХРАНЕНИЕ ФОТО ==========
     // Если это фото и его отправил не текущий пользователь
     if (message.type === 'image' && message.senderId !== currentUser.id) {
         autoSavePhotoIfNeeded(message.message);
@@ -815,59 +827,76 @@ async function sendForwardMessage(originalMessageId, toUserId, toUsername) {
     }
 }
 
-// Настройка долгого нажатия на сообщения
-function setupLongPressOnMessages() {
-    const messages = document.querySelectorAll('.message');
-    messages.forEach(msg => {
-        // Для телефона (touch)
-        msg.addEventListener('touchstart', (e) => {
+// Привязать обработчик долгого нажатия к конкретному сообщению
+function attachLongPressToMessage(msgElement) {
+    if (!msgElement) return;
+    
+    // Удаляем старые обработчики, чтобы не дублировать
+    msgElement.removeEventListener('touchstart', handleTouchStart);
+    msgElement.removeEventListener('touchend', handleTouchEnd);
+    msgElement.removeEventListener('touchmove', handleTouchMove);
+    msgElement.removeEventListener('mousedown', handleMouseDown);
+    msgElement.removeEventListener('mouseup', handleMouseUp);
+    msgElement.removeEventListener('mouseleave', handleMouseLeave);
+    
+    // Обработчики для телефона
+    function handleTouchStart(e) {
+        longPressTimer = setTimeout(() => {
+            const messageId = msgElement.dataset.messageId;
+            const content = msgElement.querySelector('.message-content');
+            const messageText = content ? content.textContent : '';
+            const isImage = msgElement.querySelector('.photo-message') !== null;
+            const isFile = msgElement.querySelector('.file-message') !== null;
+            
+            showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '');
+        }, 500);
+    }
+    
+    function handleTouchEnd() {
+        clearTimeout(longPressTimer);
+    }
+    
+    function handleTouchMove() {
+        clearTimeout(longPressTimer);
+    }
+    
+    // Обработчики для мыши (компьютер)
+    function handleMouseDown(e) {
+        if (e.button === 0) {
             longPressTimer = setTimeout(() => {
-                const messageId = msg.dataset.messageId;
-                const content = msg.querySelector('.message-content');
+                const messageId = msgElement.dataset.messageId;
+                const content = msgElement.querySelector('.message-content');
                 const messageText = content ? content.textContent : '';
-                const isImage = msg.querySelector('.photo-message') !== null;
-                const isFile = msg.querySelector('.file-message') !== null;
+                const isImage = msgElement.querySelector('.photo-message') !== null;
+                const isFile = msgElement.querySelector('.file-message') !== null;
                 
                 showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '');
             }, 500);
-        });
-        
-        msg.addEventListener('touchend', () => {
-            clearTimeout(longPressTimer);
-        });
-        
-        msg.addEventListener('touchmove', () => {
-            clearTimeout(longPressTimer);
-        });
-        
-        // Для мыши (компьютер)
-        msg.addEventListener('mousedown', (e) => {
-            if (e.button === 0) {
-                longPressTimer = setTimeout(() => {
-                    const messageId = msg.dataset.messageId;
-                    const content = msg.querySelector('.message-content');
-                    const messageText = content ? content.textContent : '';
-                    const isImage = msg.querySelector('.photo-message') !== null;
-                    const isFile = msg.querySelector('.file-message') !== null;
-                    
-                    showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '');
-                }, 500);
-            }
-        });
-        
-        msg.addEventListener('mouseup', () => {
-            clearTimeout(longPressTimer);
-        });
-        
-        msg.addEventListener('mouseleave', () => {
-            clearTimeout(longPressTimer);
-        });
-    });
+        }
+    }
+    
+    function handleMouseUp() {
+        clearTimeout(longPressTimer);
+    }
+    
+    function handleMouseLeave() {
+        clearTimeout(longPressTimer);
+    }
+    
+    msgElement.addEventListener('touchstart', handleTouchStart);
+    msgElement.addEventListener('touchend', handleTouchEnd);
+    msgElement.addEventListener('touchmove', handleTouchMove);
+    msgElement.addEventListener('mousedown', handleMouseDown);
+    msgElement.addEventListener('mouseup', handleMouseUp);
+    msgElement.addEventListener('mouseleave', handleMouseLeave);
 }
 
-// Вызываем после загрузки сообщений
-function setupMessageLongPress() {
-    setTimeout(setupLongPressOnMessages, 100);
+// Настройка долгого нажатия на ВСЕ существующие сообщения
+function setupLongPressOnMessages() {
+    const messages = document.querySelectorAll('.message');
+    messages.forEach(msg => {
+        attachLongPressToMessage(msg);
+    });
 }
 
 // Делаем функции глобальными
