@@ -846,11 +846,10 @@ async function sendForwardMessage(originalMessageId, toUserId, toUsername) {
     }
 }
 
-// Привязать обработчик долгого нажатия к конкретному сообщению
 function attachLongPressToMessage(msgElement) {
     if (!msgElement) return;
     
-    // Удаляем старые обработчики, чтобы не дублировать
+    // Удаляем старые обработчики
     msgElement.removeEventListener('touchstart', handleTouchStart);
     msgElement.removeEventListener('touchend', handleTouchEnd);
     msgElement.removeEventListener('touchmove', handleTouchMove);
@@ -858,7 +857,6 @@ function attachLongPressToMessage(msgElement) {
     msgElement.removeEventListener('mouseup', handleMouseUp);
     msgElement.removeEventListener('mouseleave', handleMouseLeave);
     
-    // Обработчики для телефона
     function handleTouchStart(e) {
         longPressTimer = setTimeout(() => {
             const messageId = msgElement.dataset.messageId;
@@ -867,7 +865,6 @@ function attachLongPressToMessage(msgElement) {
             const isImage = msgElement.querySelector('.photo-message') !== null;
             const isFile = msgElement.querySelector('.file-message') !== null;
             
-            // Передаём элемент сообщения для позиционирования
             showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '', msgElement);
         }, 500);
     }
@@ -880,7 +877,6 @@ function attachLongPressToMessage(msgElement) {
         clearTimeout(longPressTimer);
     }
     
-    // Обработчики для мыши (компьютер)
     function handleMouseDown(e) {
         if (e.button === 0) {
             longPressTimer = setTimeout(() => {
@@ -947,3 +943,5 @@ window.downloadPhoto = downloadPhoto;
 window.savePhotoToGallery = savePhotoToGallery;
 window.autoSavePhotoIfNeeded = autoSavePhotoIfNeeded;
 window.togglePhotoMenu = togglePhotoMenu;
+window.attachLongPressToMessage = attachLongPressToMessage;
+window.setupLongPressOnMessages = setupLongPressOnMessages;
