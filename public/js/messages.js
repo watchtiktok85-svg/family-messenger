@@ -263,7 +263,6 @@ function renderMessage(msg) {
         <div class="message-meta">
             <span class="message-time">${time}</span>
             ${isSent ? `<span class="message-status">${status}</span>` : ''}
-            <button class="message-menu-btn" onclick="event.stopPropagation(); showMessageMenuById(${msg.id})">⋮</button>
         </div>
     </div>
 `;
