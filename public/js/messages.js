@@ -858,8 +858,8 @@ async function sendForwardMessage(originalMessageId, toUserId, toUsername) {
 function attachLongPressToMessage(msgElement) {
     if (!msgElement) return;
     
-    // Удаляем старые обработчики
-    msgElement.removeEventListener('touchstart', handleTouchStart), { passive: false });
+    // Удаляем старые обработчики (без { passive: false })
+    msgElement.removeEventListener('touchstart', handleTouchStart);
     msgElement.removeEventListener('touchend', handleTouchEnd);
     msgElement.removeEventListener('touchmove', handleTouchMove);
     msgElement.removeEventListener('mousedown', handleMouseDown);
@@ -908,7 +908,8 @@ function attachLongPressToMessage(msgElement) {
         clearTimeout(longPressTimer);
     }
     
-    msgElement.addEventListener('touchstart', handleTouchStart);
+    // Добавляем новые обработчики (здесь { passive: false })
+    msgElement.addEventListener('touchstart', handleTouchStart, { passive: false });
     msgElement.addEventListener('touchend', handleTouchEnd);
     msgElement.addEventListener('touchmove', handleTouchMove);
     msgElement.addEventListener('mousedown', handleMouseDown);
