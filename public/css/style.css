@@ -1866,3 +1866,41 @@ input:checked + .slider:before {
         padding: 12px 15px;
     }
 }
+
+/* Кнопка меню сообщения (три точки) */
+.message-menu-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0 4px;
+    margin-left: 8px;
+    color: var(--text-secondary);
+    opacity: 0;
+    transition: opacity 0.2s;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.message:hover .message-menu-btn {
+    opacity: 1;
+}
+
+.message-menu-btn:hover {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Для мобильных кнопка всегда видна */
+@media (max-width: 600px) {
+    .message-menu-btn {
+        opacity: 0.6;
+    }
+    .message-menu-btn:active {
+        background: var(--bg-primary);
+    }
+}
