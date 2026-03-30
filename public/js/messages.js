@@ -95,8 +95,7 @@ async function openChat(userId, username) {
                     chatAvatar.style.color = '';
                     chatAvatar.textContent = username[0].toUpperCase();
                 });
-        }
-
+        
         markMessagesAsRead(userId);
         setTimeout(scrollToBottom, 100);
         setTimeout(() => {
@@ -910,6 +909,16 @@ function attachLongPressToMessage(msgElement) {
     msgElement.addEventListener('mousedown', handleMouseDown);
     msgElement.addEventListener('mouseup', handleMouseUp);
     msgElement.addEventListener('mouseleave', handleMouseLeave);
+}
+
+// Настройка долгого нажатия на ВСЕ существующие сообщения
+function setupLongPressOnMessages() {
+    console.log('🖱️ Setting up long press on messages');
+    const messages = document.querySelectorAll('.message');
+    console.log(`📨 Found ${messages.length} messages`);
+    messages.forEach(msg => {
+        attachLongPressToMessage(msg);
+    });
 }
 
 // Делаем функции глобальными
