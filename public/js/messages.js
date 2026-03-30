@@ -293,20 +293,18 @@ function addMessageToChat(message) {
     
     // ДОБАВЛЯЕМ ОБРАБОТЧИК ДЛЯ НОВОГО СООБЩЕНИЯ
     const newMessage = container.lastElementChild;
-    if (newMessage) {
+    if (newMessage && typeof attachLongPressToMessage === 'function') {
         attachLongPressToMessage(newMessage);
     }
     
-    if (message.senderId === currentChat?.id) {
-        markMessagesAsRead(currentChat.id);
-    }
-    
     // ========== АВТОСОХРАНЕНИЕ ФОТО ==========
-    // Если это фото и его отправил не текущий пользователь
     if (message.type === 'image' && message.senderId !== currentUser.id) {
-        autoSavePhotoIfNeeded(message.message);
+        if (typeof autoSavePhotoIfNeeded === 'function') {
+            autoSavePhotoIfNeeded(message.message);
+        }
     }
     
+    // Отмечаем как прочитанное (только один раз!)
     if (message.senderId === currentChat?.id) {
         markMessagesAsRead(currentChat.id);
     }
