@@ -1848,3 +1848,21 @@ input:checked + .slider:before {
         font-size: 14px;
     }
 }
+
+/* Улучшаем область нажатия на сообщения */
+.message {
+    cursor: pointer;
+    transition: background 0.1s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.message:active {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 600px) {
+    .message {
+        padding: 12px 15px;
+    }
+}
