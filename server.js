@@ -485,6 +485,35 @@ app.post('/api/messages/forward', async (req, res) => {
     }
 });
 
+// Удалить сообщение
+app.delete('/api/messages/:messageId', async (req, res) => {
+    const { messageId } = req.params;
+    const { userId } = req.query;
+    
+    try {
+        // Проверяем, что сообщение принадлежит пользователю
+        const result = await pool.query(
+            'SELECT sender_id FROM messages WHERE id = $1',
+            [messageId]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Сообщение не найдено' });
+        }
+        
+        if (result.rows[0].sender_id != userId) {
+            return res.status(403).json({ error: 'Нет прав на удаление' });
+        }
+        
+        await pool.query('DELETE FROM messages WHERE id = $1', [messageId]);
+        
+        res.json({ success: true, message: 'Сообщение удалено' });
+    } catch (err) {
+        console.error('❌ Ошибка удаления сообщения:', err);
+        res.status(500).json({ error: 'Ошибка удаления сообщения' });
+    }
+});
+
 // Подключаем маршруты
 const authRoutes = require('./routes/auth')({ 
     findUserByPhone, 
