@@ -292,12 +292,6 @@ function addMessageToChat(message) {
     container.insertAdjacentHTML('beforeend', messageHtml);
     scrollToBottom();
     
-    // ДОБАВЛЯЕМ ОБРАБОТЧИК ДЛЯ НОВОГО СООБЩЕНИЯ
-    const newMessage = container.lastElementChild;
-    if (newMessage && typeof attachLongPressToMessage === 'function') {
-        attachLongPressToMessage(newMessage);
-    }
-    
     // ========== АВТОСОХРАНЕНИЕ ФОТО ==========
     if (message.type === 'image' && message.senderId !== currentUser.id) {
         if (typeof autoSavePhotoIfNeeded === 'function') {
@@ -855,76 +849,83 @@ async function sendForwardMessage(originalMessageId, toUserId, toUsername) {
     }
 }
 
-function attachLongPressToMessage(msgElement) {
-    if (!msgElement) return;
+// Глобальный обработчик долгого нажатия на контейнере
+function setupLongPressOnMessages() {
+    const container = document.getElementById('messages-container');
+    if (!container) return;
     
-    // Удаляем старые обработчики (без { passive: false })
-    msgElement.removeEventListener('touchstart', handleTouchStart);
-    msgElement.removeEventListener('touchend', handleTouchEnd);
-    msgElement.removeEventListener('touchmove', handleTouchMove);
-    msgElement.removeEventListener('mousedown', handleMouseDown);
-    msgElement.removeEventListener('mouseup', handleMouseUp);
-    msgElement.removeEventListener('mouseleave', handleMouseLeave);
+    let pressTimer = null;
+    let targetMessage = null;
     
-    function handleTouchStart(e) {
-        longPressTimer = setTimeout(() => {
-            const messageId = msgElement.dataset.messageId;
-            const content = msgElement.querySelector('.message-content');
-            const messageText = content ? content.textContent : '';
-            const isImage = msgElement.querySelector('.photo-message') !== null;
-            const isFile = msgElement.querySelector('.file-message') !== null;
-            
-            showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '', msgElement);
+    // Функция начала нажатия
+    function onTouchStart(e) {
+        // Находим элемент сообщения (родитель с классом .message)
+        targetMessage = e.target.closest('.message');
+        if (!targetMessage) return;
+        
+        pressTimer = setTimeout(() => {
+            if (targetMessage) {
+                const messageId = targetMessage.dataset.messageId;
+                const content = targetMessage.querySelector('.message-content');
+                const messageText = content ? content.textContent : '';
+                const isImage = targetMessage.querySelector('.photo-message') !== null;
+                const isFile = targetMessage.querySelector('.file-message') !== null;
+                
+                // Показываем меню
+                showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '', targetMessage);
+            }
         }, 500);
     }
     
-    function handleTouchEnd() {
-        clearTimeout(longPressTimer);
+    function onTouchEnd() {
+        clearTimeout(pressTimer);
+        targetMessage = null;
     }
     
-    function handleTouchMove() {
-        clearTimeout(longPressTimer);
+    function onTouchMove() {
+        clearTimeout(pressTimer);
+        targetMessage = null;
     }
     
-    function handleMouseDown(e) {
-        if (e.button === 0) {
-            longPressTimer = setTimeout(() => {
-                const messageId = msgElement.dataset.messageId;
-                const content = msgElement.querySelector('.message-content');
+    // Для мыши (компьютер)
+    function onMouseDown(e) {
+        if (e.button !== 0) return;
+        targetMessage = e.target.closest('.message');
+        if (!targetMessage) return;
+        
+        pressTimer = setTimeout(() => {
+            if (targetMessage) {
+                const messageId = targetMessage.dataset.messageId;
+                const content = targetMessage.querySelector('.message-content');
                 const messageText = content ? content.textContent : '';
-                const isImage = msgElement.querySelector('.photo-message') !== null;
-                const isFile = msgElement.querySelector('.file-message') !== null;
+                const isImage = targetMessage.querySelector('.photo-message') !== null;
+                const isFile = targetMessage.querySelector('.file-message') !== null;
                 
-                showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '', msgElement);
-            }, 500);
-        }
+                showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '', targetMessage);
+            }
+        }, 500);
     }
     
-    function handleMouseUp() {
-        clearTimeout(longPressTimer);
+    function onMouseUp() {
+        clearTimeout(pressTimer);
+        targetMessage = null;
     }
     
-    function handleMouseLeave() {
-        clearTimeout(longPressTimer);
-    }
+    // Удаляем старые обработчики
+    container.removeEventListener('touchstart', onTouchStart);
+    container.removeEventListener('touchend', onTouchEnd);
+    container.removeEventListener('touchmove', onTouchMove);
+    container.removeEventListener('mousedown', onMouseDown);
+    container.removeEventListener('mouseup', onMouseUp);
     
-    // Добавляем новые обработчики (здесь { passive: false })
-    msgElement.addEventListener('touchstart', handleTouchStart, { passive: false });
-    msgElement.addEventListener('touchend', handleTouchEnd);
-    msgElement.addEventListener('touchmove', handleTouchMove);
-    msgElement.addEventListener('mousedown', handleMouseDown);
-    msgElement.addEventListener('mouseup', handleMouseUp);
-    msgElement.addEventListener('mouseleave', handleMouseLeave);
-}
-
-// Настройка долгого нажатия на ВСЕ существующие сообщения
-function setupLongPressOnMessages() {
-    console.log('🖱️ Setting up long press on messages');
-    const messages = document.querySelectorAll('.message');
-    console.log(`📨 Found ${messages.length} messages`);
-    messages.forEach(msg => {
-        attachLongPressToMessage(msg);
-    });
+    // Добавляем новые
+    container.addEventListener('touchstart', onTouchStart, { passive: false });
+    container.addEventListener('touchend', onTouchEnd);
+    container.addEventListener('touchmove', onTouchMove);
+    container.addEventListener('mousedown', onMouseDown);
+    container.addEventListener('mouseup', onMouseUp);
+    
+    console.log('✅ Long press setup on messages container');
 }
 
 // Удалить сообщение из чата (только у себя)
@@ -962,7 +963,6 @@ window.forwardMessage = forwardMessage;
 window.sendForwardMessage = sendForwardMessage;
 window.copyMessageText = copyMessageText;
 window.showMessageMenu = showMessageMenu;
-window.attachLongPressToMessage = attachLongPressToMessage;
 window.setupLongPressOnMessages = setupLongPressOnMessages;
 
 // ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ==========
