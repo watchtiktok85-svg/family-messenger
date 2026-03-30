@@ -859,7 +859,7 @@ function attachLongPressToMessage(msgElement) {
     if (!msgElement) return;
     
     // Удаляем старые обработчики
-    msgElement.removeEventListener('touchstart', handleTouchStart);
+    msgElement.removeEventListener('touchstart', handleTouchStart), { passive: false });
     msgElement.removeEventListener('touchend', handleTouchEnd);
     msgElement.removeEventListener('touchmove', handleTouchMove);
     msgElement.removeEventListener('mousedown', handleMouseDown);
