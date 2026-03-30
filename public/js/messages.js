@@ -715,14 +715,34 @@ async function autoSavePhotoIfNeeded(imageUrl) {
 
 let longPressTimer = null;
 
-// Показать меню при долгом нажатии на сообщение
-function showMessageMenu(messageId, messageText, messageType, fileUrl, fileName) {
+// Показать меню при долгом нажатии на сообщение (позиционируется рядом с сообщением)
+function showMessageMenu(messageId, messageText, messageType, fileUrl, fileName, targetElement) {
     // Удаляем старое меню
     const oldMenu = document.querySelector('.message-menu');
     if (oldMenu) oldMenu.remove();
     
+    // Получаем позицию сообщения
+    const rect = targetElement.getBoundingClientRect();
+    const isNearBottom = rect.bottom > window.innerHeight - 150;
+    
+    // Создаём меню
     const menu = document.createElement('div');
     menu.className = 'message-menu';
+    
+    // Позиционируем
+    if (isNearBottom) {
+        menu.style.position = 'fixed';
+        menu.style.bottom = `${window.innerHeight - rect.top + 10}px`;
+        menu.style.left = `${rect.left + rect.width / 2}px`;
+        menu.style.transform = 'translateX(-50%)';
+        menu.style.top = 'auto';
+    } else {
+        menu.style.position = 'fixed';
+        menu.style.top = `${rect.bottom + 10}px`;
+        menu.style.left = `${rect.left + rect.width / 2}px`;
+        menu.style.transform = 'translateX(-50%)';
+    }
+    
     menu.innerHTML = `
         <div class="message-menu-content">
             <div class="message-menu-item" onclick="forwardMessage(${messageId}, '${messageText.replace(/'/g, "\\'")}', '${messageType}', '${fileUrl}', '${fileName}')">
@@ -848,7 +868,8 @@ function attachLongPressToMessage(msgElement) {
             const isImage = msgElement.querySelector('.photo-message') !== null;
             const isFile = msgElement.querySelector('.file-message') !== null;
             
-            showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '');
+            // Передаём элемент сообщения для позиционирования
+            showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '', msgElement);
         }, 500);
     }
     
@@ -870,7 +891,7 @@ function attachLongPressToMessage(msgElement) {
                 const isImage = msgElement.querySelector('.photo-message') !== null;
                 const isFile = msgElement.querySelector('.file-message') !== null;
                 
-                showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '');
+                showMessageMenu(messageId, messageText, isImage ? 'image' : (isFile ? 'file' : 'text'), '', '', msgElement);
             }, 500);
         }
     }
@@ -889,14 +910,6 @@ function attachLongPressToMessage(msgElement) {
     msgElement.addEventListener('mousedown', handleMouseDown);
     msgElement.addEventListener('mouseup', handleMouseUp);
     msgElement.addEventListener('mouseleave', handleMouseLeave);
-}
-
-// Настройка долгого нажатия на ВСЕ существующие сообщения
-function setupLongPressOnMessages() {
-    const messages = document.querySelectorAll('.message');
-    messages.forEach(msg => {
-        attachLongPressToMessage(msg);
-    });
 }
 
 // Делаем функции глобальными
